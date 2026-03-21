@@ -9,10 +9,11 @@ A personal micro-services suite — self-hosted tools for everyday life.
 | Server          | VPS Hostinger — Ubuntu 24.04.4 LTS                            |
 | Resources       | 1 vCPU, 3.8 GB RAM, 48 GB disk, 2 GB swap                    |
 | Access          | SSH (root)                                                     |
-| Existing        | nginx + Hugo static site (personal CV at yannicktirand.xyz)   |
-| Orchestration   | Docker 29.3 + Docker Compose v5.1                             |
-| Reverse proxy   | Traefik (TBD)                                                  |
-| SSL             | Let's Encrypt via certbot (auto-renewal)                       |
+| Existing        | Hugo static site (personal CV at yannicktirand.xyz)            |
+| Orchestration   | Docker 29.3 + Docker Compose v5.1                              |
+| Reverse proxy   | Traefik v3.6                                                   |
+| SSL             | Let's Encrypt via Traefik ACME (auto-renewal)                  |
+| CI/CD           | GitHub Actions (push to main → auto-deploy)                    |
 | Node.js         | v22.22 LTS                                                     |
 
 ## Tech Stack
@@ -34,16 +35,16 @@ A personal micro-services suite — self-hosted tools for everyday life.
 - [x] Install Docker + Docker Compose on the VPS
 - [x] Clean up legacy projects and configs
 - [x] Upgrade OS to Ubuntu 24.04 LTS
-- [x] Restore CV site (Hugo + nginx + HTTPS)
-- [ ] Set up reverse proxy (Traefik) in front of nginx
-- [ ] Structure the monorepo
-- [ ] Shared auth system (JWT or session-based, TBD)
-- [ ] Basic CI/CD pipeline (push → build → deploy)
+- [x] Restore CV site (Hugo + HTTPS)
+- [x] Set up reverse proxy (Traefik) — replaces nginx
+- [x] Structure the monorepo
+- [x] CI/CD pipeline (GitHub Actions: push to main → auto-deploy)
 
 ### Phase 1 — Dashboard + Monitoring
 
 > The central hub + first eyes on the server.
 
+- [ ] **Shared auth system** — JWT or session-based (TBD), single sign-on for all services
 - [ ] **Dashboard** — Auth-protected web UI, single entry point for all services
 - [ ] **Server monitoring** — System metrics (CPU, RAM, disk, network) with history
 - [ ] **Homemade analytics** — Lightweight visit tracking for the public-facing site (simplified Plausible/Umami)
