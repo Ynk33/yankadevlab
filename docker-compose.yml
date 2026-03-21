@@ -1,0 +1,52 @@
+services:
+  # ============================================
+  # Reverse Proxy
+  # ============================================
+  traefik:
+    image: traefik:v3.4
+    container_name: traefik
+    restart: unless-stopped
+    environment:
+      - TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_EMAIL=${ACME_EMAIL}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./infra/traefik/traefik.yml:/traefik.yml:ro
+      - traefik-certs:/letsencrypt
+    networks:
+      - traefik-public
+    labels:
+      # Dashboard accessible at traefik.yankadevlab.tech (protected by basic auth)
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.yankadevlab.tech`)"
+      - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
+      - "traefik.http.routers.traefik-dashboard.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.traefik-dashboard.service=api@internal"
+      - "traefik.http.routers.traefik-dashboard.middlewares=traefik-auth"
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}"
+
+  # ============================================
+  # Personal CV Website
+  # ============================================
+  cv-site:
+    image: nginx:alpine
+    container_name: cv-site
+    restart: unless-stopped
+    volumes:
+      - /var/www/yannicktirand.xyz/public:/usr/share/nginx/html:ro
+    networks:
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cv-site.rule=Host(`yannicktirand.xyz`) || Host(`www.yannicktirand.xyz`) || Host(`yannicktirand.fr`) || Host(`www.yannicktirand.fr`) || Host(`yannicktirand.com`) || Host(`www.yannicktirand.com`)"
+      - "traefik.http.routers.cv-site.entrypoints=websecure"
+      - "traefik.http.routers.cv-site.tls.certresolver=letsencrypt"
+
+networks:
+  traefik-public:
+    name: traefik-public
+
+volumes:
+  traefik-certs:
