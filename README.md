@@ -51,13 +51,13 @@ A personal micro-services suite — self-hosted tools for everyday life.
   - [x] Database connection + migrations (auth schema)
   - [x] Seed admin user (CLI tool)
   - [x] Config management (env-based)
-  - [ ] POST /login (JWT access token + refresh token cookie)
+  - [x] POST /login (JWT access token + refresh token cookie)
+  - [x] Structured logging (slog)
   - [ ] POST /refresh (token rotation)
   - [ ] POST /logout (revoke refresh token)
   - [ ] GET /verify (Traefik ForwardAuth endpoint)
   - [ ] Traefik ForwardAuth middleware config
   - [ ] Rate limiting on /login
-  - [ ] Structured logging (slog)
   - [ ] Expired token cleanup (background goroutine)
 - [ ] **Dashboard** — Auth-protected web UI, single entry point for all services
 - [ ] **Server monitoring** — System metrics (CPU, RAM, disk, network) with history
