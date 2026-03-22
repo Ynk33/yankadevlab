@@ -49,6 +49,29 @@ services:
       - pg-data:/var/lib/postgresql/data
 
   # ============================================
+  # Auth Service
+  # ============================================
+  auth:
+    build:
+      context: ./services/auth
+    container_name: auth
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - traefik-public
+      - internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.auth.rule=Host(`auth.yankadevlab.tech`)"
+      - "traefik.http.routers.auth.entrypoints=websecure"
+      - "traefik.http.routers.auth.tls.certresolver=letsencrypt"
+      - "traefik.http.services.auth.loadbalancer.server.port=8080"
+
+  # ============================================
   # Personal CV Website
   # ============================================
   cv-site:
