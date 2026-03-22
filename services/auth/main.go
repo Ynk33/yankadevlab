@@ -2,54 +2,77 @@ package main
 
 import (
 	"database/sql"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
+
+	"github.com/Ynk33/yankadevlab/services/auth/handler"
 )
 
 func main() {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
 	cfg, err := LoadConfig()
 	if err != nil {
-		log.Fatalf("failed to load config: %v", err)
+		logger.Error("failed to load config", "error", err)
+		os.Exit(1)
 	}
 
 	db, err := sql.Open("postgres", cfg.DatabaseURL)
 	if err != nil {
-		log.Fatalf("failed to open database: %v", err)
+		logger.Error("failed to open database", "error", err)
+		os.Exit(1)
 	}
 	defer db.Close()
 
 	if err := db.Ping(); err != nil {
-		log.Fatalf("failed to ping database: %v", err)
+		logger.Error("failed to ping database", "error", err)
+		os.Exit(1)
 	}
-	log.Println("connected to database")
+	logger.Info("connected to database")
 
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
-		log.Fatalf("failed to create migration driver: %v", err)
+		logger.Error("failed to create migration driver", "error", err)
+		os.Exit(1)
 	}
 
 	m, err := migrate.NewWithDatabaseInstance("file://migrations", "postgres", driver)
 	if err != nil {
-		log.Fatalf("failed to create migration instance: %v", err)
+		logger.Error("failed to create migration instance", "error", err)
+		os.Exit(1)
 	}
 
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		log.Fatalf("migrate failed: %v", err)
+		logger.Error("migrate failed", "error", err)
+		os.Exit(1)
 	}
-	log.Println("migrations applied")
+	logger.Info("migrations applied")
+
+	loginHandler := &handler.LoginHandler{
+		DB:                   db,
+		Log:                  logger,
+		JWTSecret:            cfg.JWTSecret,
+		AccessTokenDuration:  cfg.AccessTokenDuration,
+		RefreshTokenDuration: cfg.RefreshTokenDuration,
+	}
 
 	r := chi.NewRouter()
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
 	})
+	r.Post("/login", loginHandler.ServeHTTP)
 
-	log.Printf("auth service listening on :%s", cfg.ServerPort)
-	log.Fatal(http.ListenAndServe(":"+cfg.ServerPort, r))
+	logger.Info("auth service listening", "port", cfg.ServerPort)
+	if err := http.ListenAndServe(":"+cfg.ServerPort, r); err != nil {
+		logger.Error("server stopped", "error", err)
+		os.Exit(1)
+	}
 }
