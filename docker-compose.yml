@@ -28,6 +28,27 @@ services:
       - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}"
 
   # ============================================
+  # Shared PostgreSQL DB
+  # ============================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+
+  # ============================================
   # Personal CV Website
   # ============================================
   cv-site:
@@ -47,6 +68,8 @@ services:
 networks:
   traefik-public:
     name: traefik-public
+  internal:
 
 volumes:
   traefik-certs:
+  pg-data:
