@@ -47,8 +47,8 @@ A personal micro-services suite — self-hosted tools for everyday life.
 - [ ] **Shared auth system** — JWT-based, single sign-on for all services
   - [x] Add PostgreSQL to Docker Compose (shared instance, internal network)
   - [x] Auth service scaffold (Go + chi, health endpoint, multi-stage Dockerfile)
-  - [ ] Wire auth service into Docker Compose + Traefik routing
-  - [ ] Database connection + migrations (auth schema)
+  - [x] Wire auth service into Docker Compose + Traefik routing
+  - [x] Database connection + migrations (auth schema)
   - [ ] Seed admin user (CLI tool)
   - [ ] Config management (env-based)
   - [ ] POST /login (JWT access token + refresh token cookie)
