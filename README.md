@@ -49,8 +49,8 @@ A personal micro-services suite — self-hosted tools for everyday life.
   - [x] Auth service scaffold (Go + chi, health endpoint, multi-stage Dockerfile)
   - [x] Wire auth service into Docker Compose + Traefik routing
   - [x] Database connection + migrations (auth schema)
-  - [ ] Seed admin user (CLI tool)
-  - [ ] Config management (env-based)
+  - [x] Seed admin user (CLI tool)
+  - [x] Config management (env-based)
   - [ ] POST /login (JWT access token + refresh token cookie)
   - [ ] POST /refresh (token rotation)
   - [ ] POST /logout (revoke refresh token)
