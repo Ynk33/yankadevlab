@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/golang-migrate/migrate/v4"
@@ -14,12 +13,12 @@ import (
 )
 
 func main() {
-	dbURL := os.Getenv("DATABASE_URL")
-	if dbURL == "" {
-		log.Fatal("DATABASE_URL is required")
+	cfg, err := LoadConfig()
+	if err != nil {
+		log.Fatalf("failed to load config: %v", err)
 	}
 
-	db, err := sql.Open("postgres", dbURL)
+	db, err := sql.Open("postgres", cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("failed to open database: %v", err)
 	}
@@ -51,6 +50,6 @@ func main() {
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 
-	log.Println("auth service listening on :8080")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Printf("auth service listening on :%s", cfg.ServerPort)
+	log.Fatal(http.ListenAndServe(":"+cfg.ServerPort, r))
 }
