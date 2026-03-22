@@ -44,7 +44,21 @@ A personal micro-services suite — self-hosted tools for everyday life.
 
 > The central hub + first eyes on the server.
 
-- [ ] **Shared auth system** — JWT or session-based (TBD), single sign-on for all services
+- [ ] **Shared auth system** — JWT-based, single sign-on for all services
+  - [x] Add PostgreSQL to Docker Compose (shared instance, internal network)
+  - [x] Auth service scaffold (Go + chi, health endpoint, multi-stage Dockerfile)
+  - [ ] Wire auth service into Docker Compose + Traefik routing
+  - [ ] Database connection + migrations (auth schema)
+  - [ ] Seed admin user (CLI tool)
+  - [ ] Config management (env-based)
+  - [ ] POST /login (JWT access token + refresh token cookie)
+  - [ ] POST /refresh (token rotation)
+  - [ ] POST /logout (revoke refresh token)
+  - [ ] GET /verify (Traefik ForwardAuth endpoint)
+  - [ ] Traefik ForwardAuth middleware config
+  - [ ] Rate limiting on /login
+  - [ ] Structured logging (slog)
+  - [ ] Expired token cleanup (background goroutine)
 - [ ] **Dashboard** — Auth-protected web UI, single entry point for all services
 - [ ] **Server monitoring** — System metrics (CPU, RAM, disk, network) with history
 - [ ] **Homemade analytics** — Lightweight visit tracking for the public-facing site (simplified Plausible/Umami)
