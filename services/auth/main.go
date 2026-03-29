@@ -57,6 +57,8 @@ func main() {
 	}
 	logger.Info("migrations applied")
 
+	go startTokenCleanup(db, logger, 1*time.Hour)
+
 	loginHandler := &handler.LoginHandler{
 		DB:                   db,
 		Log:                  logger,
