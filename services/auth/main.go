@@ -76,6 +76,11 @@ func main() {
 		Log: logger,
 	}
 
+	verifyHandler := &handler.VerifyHandler{
+		Log:       logger,
+		JWTSecret: cfg.JWTSecret,
+	}
+
 	r := chi.NewRouter()
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -84,6 +89,7 @@ func main() {
 	r.Post("/login", loginHandler.ServeHTTP)
 	r.Post("/refresh", refreshHandler.ServeHTTP)
 	r.Post("/logout", logoutHandler.ServeHTTP)
+	r.Get("/verify", verifyHandler.ServeHTTP)
 
 	logger.Info("auth service listening", "port", cfg.ServerPort)
 	if err := http.ListenAndServe(":"+cfg.ServerPort, r); err != nil {

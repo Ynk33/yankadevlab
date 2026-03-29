@@ -55,7 +55,7 @@ A personal micro-services suite — self-hosted tools for everyday life.
   - [x] Structured logging (slog)
   - [x] POST /refresh (token rotation)
   - [x] POST /logout (revoke refresh token)
-  - [ ] GET /verify (Traefik ForwardAuth endpoint)
+  - [x] GET /verify (Traefik ForwardAuth endpoint)
   - [ ] Traefik ForwardAuth middleware config
   - [ ] Rate limiting on /login
   - [ ] Expired token cleanup (background goroutine)
