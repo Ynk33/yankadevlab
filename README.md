@@ -54,7 +54,7 @@ A personal micro-services suite — self-hosted tools for everyday life.
   - [x] POST /login (JWT access token + refresh token cookie)
   - [x] Structured logging (slog)
   - [x] POST /refresh (token rotation)
-  - [ ] POST /logout (revoke refresh token)
+  - [x] POST /logout (revoke refresh token)
   - [ ] GET /verify (Traefik ForwardAuth endpoint)
   - [ ] Traefik ForwardAuth middleware config
   - [ ] Rate limiting on /login
