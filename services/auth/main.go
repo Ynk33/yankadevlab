@@ -5,8 +5,10 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/httprate"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -86,7 +88,7 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
 	})
-	r.Post("/login", loginHandler.ServeHTTP)
+	r.With(httprate.LimitByIP(5, time.Minute)).Post("/login", loginHandler.ServeHTTP)
 	r.Post("/refresh", refreshHandler.ServeHTTP)
 	r.Post("/logout", logoutHandler.ServeHTTP)
 	r.Get("/verify", verifyHandler.ServeHTTP)
