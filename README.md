@@ -60,6 +60,13 @@ A personal micro-services suite — self-hosted tools for everyday life.
   - [x] Rate limiting on /login
   - [x] Expired token cleanup (background goroutine)
 - [ ] **Dashboard** — Auth-protected web UI, single entry point for all services
+  - [x] Scaffold (Vite + React 19 + TypeScript, Tailwind CSS v4, shadcn/ui)
+  - [x] Auth integration (login page, auth context, JWT + refresh token flow)
+  - [x] Authenticated layout (collapsible sidebar, header, protected routes)
+  - [x] Docker setup (multi-stage build → nginx, Traefik routing on dashboard.yankadevlab.tech)
+  - [x] CORS on auth service for dashboard origin
+  - [ ] Dark mode toggle
+  - [ ] 404 page
 - [ ] **Server monitoring** — System metrics (CPU, RAM, disk, network) with history
 - [ ] **Homemade analytics** — Lightweight visit tracking for the public-facing site (simplified Plausible/Umami)
 
