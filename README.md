@@ -56,7 +56,7 @@ A personal micro-services suite — self-hosted tools for everyday life.
   - [x] POST /refresh (token rotation)
   - [x] POST /logout (revoke refresh token)
   - [x] GET /verify (Traefik ForwardAuth endpoint)
-  - [ ] Traefik ForwardAuth middleware config
+  - [x] Traefik ForwardAuth middleware config
   - [ ] Rate limiting on /login
   - [ ] Expired token cleanup (background goroutine)
 - [ ] **Dashboard** — Auth-protected web UI, single entry point for all services

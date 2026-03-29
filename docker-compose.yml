@@ -71,6 +71,9 @@ services:
       - "traefik.http.routers.auth.entrypoints=websecure"
       - "traefik.http.routers.auth.tls.certresolver=letsencrypt"
       - "traefik.http.services.auth.loadbalancer.server.port=8080"
+      # ForwardAuth middleware: other services reference "auth-verify" to require JWT 
+      - "traefik.http.middlewares.auth-verify.forwardauth.address=http://auth:8080/verify"
+      - "traefik.http.middlewares.auth-verify.forwardauth.authResponseHeaders=X-User-Id,X-User-Email"
 
   # ============================================
   # Personal CV Website
