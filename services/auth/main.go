@@ -63,12 +63,21 @@ func main() {
 		RefreshTokenDuration: cfg.RefreshTokenDuration,
 	}
 
+	refreshHandler := &handler.RefreshHandler{
+		DB:                   db,
+		Log:                  logger,
+		JWTSecret:            cfg.JWTSecret,
+		AccessTokenDuration:  cfg.AccessTokenDuration,
+		RefreshTokenDuration: cfg.RefreshTokenDuration,
+	}
+
 	r := chi.NewRouter()
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 	r.Post("/login", loginHandler.ServeHTTP)
+	r.Post("/refresh", refreshHandler.ServeHTTP)
 
 	logger.Info("auth service listening", "port", cfg.ServerPort)
 	if err := http.ListenAndServe(":"+cfg.ServerPort, r); err != nil {
