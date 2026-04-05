@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 
 export function DashboardLayout() {
   return (
@@ -14,6 +15,9 @@ export function DashboardLayout() {
             <SidebarTrigger />
             <Separator orientation="vertical" className="mr-2 h-4" />
             <h1 className="text-sm font-medium">Dashboard</h1>
+            <div className="ml-auto">
+              <ThemeToggle />
+            </div>
           </header>
           <div className="flex flex-1 flex-col p-4">
             <Outlet />
