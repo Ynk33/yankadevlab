@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const devLogin = useCallback(async (email: string, password: string) => {
-    console.log(`Fake login with ${email} and ${password.slice(2)}*****${password.slice(-2)}`);
+    console.log(`Fake login with ${email} and ${password.slice(0, 2)}*****${password.slice(-2)}`);
     localStorage.setItem("access_token", "dev-access-token");
     setAccessToken("dev-access-token");
   }, []);
