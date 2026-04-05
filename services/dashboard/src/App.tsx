@@ -1,10 +1,11 @@
+import type { ReactNode } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import { AuthProvider } from "@/contexts/auth";
 import { useAuth } from "@/hooks/use-auth";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import LoginPage from "@/pages/login";
 import HomePage from "@/pages/home";
-import type { ReactNode } from "react";
+import NotFoundPage from "@/pages/not-found";
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -27,6 +28,7 @@ export default function App() {
           >
             <Route index element={<HomePage />} />
           </Route>
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

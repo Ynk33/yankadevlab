@@ -57,6 +57,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccessToken(data.access_token);
   }, []);
 
+  const devLogin = useCallback(async (email: string, password: string) => {
+    console.log(`Fake login with ${email} and ${password.slice(2)}*****${password.slice(-2)}`);
+    localStorage.setItem("access_token", "dev-access-token");
+    setAccessToken("dev-access-token");
+  }, []);
+
   const logout = useCallback(async () => {
     await fetch(`${API_BASE}/logout`, {
       method: "POST",
@@ -69,9 +75,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccessToken(null);
   }, []);
 
+  const exposedLogin = useMemo(() => import.meta.env.DEV ? devLogin : login, [devLogin, login]);
+
   const value = useMemo(
-    () => ({ accessToken, isAuthenticated, login, logout }),
-    [accessToken, isAuthenticated, login, logout],
+    () => ({ accessToken, isAuthenticated, login: exposedLogin, logout }),
+    [accessToken, isAuthenticated, exposedLogin, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
