@@ -126,6 +126,31 @@ services:
     networks:
       - internal
 
+  monitoring:
+    build:
+      context: ./services/monitoring
+    container_name: monitoring
+    restart: unless-stopped
+    environment:
+      - PROMETHEUS_URL=http://prometheus:9090
+    depends_on:
+      - prometheus
+    networks:
+      - traefik-public
+      - internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.monitoring.rule=Host(`monitoring.yankadevlab.tech`)"
+      - "traefik.http.routers.monitoring.entrypoints=websecure"
+      - "traefik.http.routers.monitoring.tls.certresolver=letsencrypt"
+      - "traefik.http.services.monitoring.loadbalancer.server.port=8080"
+      # Middleware order matters: CORS first (answers preflight), then JWT check
+      - "traefik.http.routers.monitoring.middlewares=monitoring-cors,auth-verify"
+      - "traefik.http.middlewares.monitoring-cors.headers.accessControlAllowOriginList=https://dashboard.yankadevlab.tech"
+      - "traefik.http.middlewares.monitoring-cors.headers.accessControlAllowMethods=GET,OPTIONS"
+      - "traefik.http.middlewares.monitoring-cors.headers.accessControlAllowHeaders=Authorization,Content-Type"
+      - "traefik.http.middlewares.monitoring-cors.headers.accessControlMaxAge=300"
+
   # ============================================
   # Personal CV Website
   # ============================================

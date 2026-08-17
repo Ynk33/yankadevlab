@@ -6,6 +6,9 @@ import (
 	"os"
 
 	"github.com/go-chi/chi/v5"
+
+	"github.com/Ynk33/yankadevlab/services/monitoring/handler"
+	"github.com/Ynk33/yankadevlab/services/monitoring/prom"
 )
 
 func main() {
@@ -16,11 +19,24 @@ func main() {
 		port = "8080"
 	}
 
+	prometheusURL := os.Getenv("PROMETHEUS_URL")
+	if prometheusURL == "" {
+		prometheusURL = "http://prometheus:9090"
+	}
+
+	promClient := prom.NewClient(prometheusURL)
+
+	cpuHandler := &handler.CPUHandler{
+		Prom: promClient,
+		Log:  logger,
+	}
+
 	r := chi.NewRouter()
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
 	})
+	r.Get("/metrics/cpu", cpuHandler.ServeHTTP)
 
 	logger.Info("monitoring service listening", "port", port)
 	if err := http.ListenAndServe(":"+port, r); err != nil {
