@@ -83,6 +83,7 @@ services:
       context: ./services/dashboard
       args:
         - VITE_AUTH_API_URL=https://auth.yankadevlab.tech
+        - VITE_MONITORING_API_URL=https://monitoring.yankadevlab.tech
     container_name: dashboard
     restart: unless-stopped
     networks:
