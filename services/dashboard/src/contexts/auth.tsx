@@ -1,42 +1,42 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { AuthContext } from "@/hooks/use-auth";
 
 const API_BASE = import.meta.env.VITE_AUTH_API_URL ?? "";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [accessToken, setAccessToken] = useState<string | null>(() =>
-    localStorage.getItem("access_token"),
+  const [accessToken, setAccessToken] = useState<string | undefined>(
+    () => localStorage.getItem("access_token") ?? undefined,
   );
 
-  const isAuthenticated = accessToken !== null;
+  const isAuthenticated = accessToken !== undefined;
+
+  const refreshAccessToken = useCallback(async (): Promise<
+    string | undefined
+  > => {
+    try {
+      const res = await fetch(`${API_BASE}/refresh`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) return undefined;
+
+      const data = await res.json();
+      if (!data?.access_token) return undefined;
+
+      localStorage.setItem("access_token", data.access_token);
+      setAccessToken(data.access_token);
+      return data.access_token;
+    } catch {
+      return undefined;
+    }
+  }, []);
 
   // Try to refresh the access token on mount (if we have a refresh cookie)
   useEffect(() => {
     if (accessToken) return;
-
-    fetch(`${API_BASE}/refresh`, {
-      method: "POST",
-      credentials: "include",
-    })
-      .then((res) => {
-        if (!res.ok) return null;
-        return res.json();
-      })
-      .then((data) => {
-        if (data?.access_token) {
-          localStorage.setItem("access_token", data.access_token);
-          setAccessToken(data.access_token);
-        }
-      })
-      .catch(() => {
-        // No valid refresh token — user needs to log in
-      });
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    refreshAccessToken();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const login = useCallback(async (email: string, password: string) => {
@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     if (!res.ok) {
-      const body = await res.json().catch(() => null);
+      const body = await res.json().catch(() => undefined);
       throw new Error(body?.error ?? "Login failed");
     }
 
@@ -58,7 +58,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const devLogin = useCallback(async (email: string, password: string) => {
-    console.log(`Fake login with ${email} and ${password.slice(0, 2)}*****${password.slice(-2)}`);
+    console.log(
+      `Fake login with ${email} and ${password.slice(0, 2)}*****${password.slice(-2)}`,
+    );
     localStorage.setItem("access_token", "dev-access-token");
     setAccessToken("dev-access-token");
   }, []);
@@ -72,14 +74,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     localStorage.removeItem("access_token");
-    setAccessToken(null);
+    setAccessToken(undefined);
   }, []);
 
-  const exposedLogin = useMemo(() => import.meta.env.DEV ? devLogin : login, [devLogin, login]);
+  const authFetch = useCallback(
+    async (input: RequestInfo | URL, init: RequestInit = {}) => {
+      const withAuth = (token: string | undefined): RequestInit => ({
+        ...init,
+        headers: { ...init.headers, Authorization: `Bearer ${token}` },
+      });
+
+      const res = await fetch(input, withAuth(accessToken));
+      if (res.status !== 401) return res;
+
+      const newToken = await refreshAccessToken();
+      if (!newToken) return res;
+      return fetch(input, withAuth(newToken));
+    },
+    [accessToken, refreshAccessToken],
+  );
+
+  const exposedLogin = useMemo(
+    () => (import.meta.env.DEV ? devLogin : login),
+    [devLogin, login],
+  );
 
   const value = useMemo(
-    () => ({ accessToken, isAuthenticated, login: exposedLogin, logout }),
-    [accessToken, isAuthenticated, exposedLogin, logout],
+    () => ({
+      accessToken,
+      isAuthenticated,
+      login: exposedLogin,
+      logout,
+      authFetch,
+    }),
+    [accessToken, isAuthenticated, exposedLogin, logout, authFetch],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

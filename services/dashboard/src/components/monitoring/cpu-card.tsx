@@ -21,7 +21,7 @@ interface CpuMetric {
 }
 
 export function CpuCard() {
-  const { accessToken } = useAuth();
+  const { authFetch } = useAuth();
   const [metric, setMetric] = useState<CpuMetric | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);
@@ -30,9 +30,7 @@ export function CpuCard() {
     setLoading(true);
     setError(undefined);
     try {
-      const res = await fetch(`${API_BASE}/metrics/cpu`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      const res = await authFetch(`${API_BASE}/metrics/cpu`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data: CpuMetric = await res.json();
       setMetric(data);
@@ -41,7 +39,7 @@ export function CpuCard() {
     } finally {
       setLoading(false);
     }
-  }, [accessToken]);
+  }, [authFetch]);
 
   useEffect(() => {
     fetchCpu();
