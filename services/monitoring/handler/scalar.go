@@ -10,35 +10,35 @@ import (
 	"github.com/Ynk33/yankadevlab/services/monitoring/prom"
 )
 
-const cpuUsageQuery = `100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)`
-
-type CPUHandler struct {
-	Prom *prom.Client
-	Log  *slog.Logger
+type ScalarHandler struct {
+	Name  string
+	Query string
+	Prom  *prom.Client
+	Log   *slog.Logger
 }
 
-type cpuResponse struct {
+type scalarResponse struct {
 	UsagePercent float64 `json:"usage_percent"`
 	Timestamp    int64   `json:"timestamp"`
 }
 
-func (h *CPUHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	body, err := h.Prom.Query(r.Context(), cpuUsageQuery)
+func (h *ScalarHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	body, err := h.Prom.Query(r.Context(), h.Query)
 	if err != nil {
-		h.Log.Error("cpu query failed", "error", err)
+		h.Log.Error("query failed", "metric", h.Name, "error", err)
 		http.Error(w, `{"error":"failed to query metrics"}`, http.StatusBadGateway)
 		return
 	}
 
 	usage, ts, err := parseScalar(body)
 	if err != nil {
-		h.Log.Error("cpu parse failed", "error", err)
+		h.Log.Error("parse failed", "metric", h.Name, "error", err)
 		http.Error(w, `{"error":"failed to parse metrics"}`, http.StatusBadGateway)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(cpuResponse{
+	json.NewEncoder(w).Encode(scalarResponse{
 		UsagePercent: usage,
 		Timestamp:    ts,
 	})

@@ -11,6 +11,14 @@ import (
 	"github.com/Ynk33/yankadevlab/services/monitoring/prom"
 )
 
+const (
+	cpuQuery   = `100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)`
+	ramQuery   = `100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)`
+	diskQuery  = `100 * (1 - node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})`
+	netRxQuery = `sum(rate(node_network_receive_bytes_total{device!="lo"}[5m]))`
+	netTxQuery = `sum(rate(node_network_transmit_bytes_total{device!="lo"}[5m]))`
+)
+
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
@@ -26,9 +34,16 @@ func main() {
 
 	promClient := prom.NewClient(prometheusURL)
 
-	cpuHandler := &handler.CPUHandler{
-		Prom: promClient,
-		Log:  logger,
+	scalar := func(name, query string) http.HandlerFunc {
+		h := &handler.ScalarHandler{Name: name, Query: query, Prom: promClient, Log: logger}
+		return h.ServeHTTP
+	}
+
+	networkHandler := &handler.NetworkHandler{
+		RxQuery: netRxQuery,
+		TxQuery: netTxQuery,
+		Prom:    promClient,
+		Log:     logger,
 	}
 
 	r := chi.NewRouter()
@@ -36,7 +51,10 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
 	})
-	r.Get("/metrics/cpu", cpuHandler.ServeHTTP)
+	r.Get("/metrics/cpu", scalar("cpu", cpuQuery))
+	r.Get("/metrics/ram", scalar("ram", ramQuery))
+	r.Get("/metrics/disk", scalar("disk", diskQuery))
+	r.Get("/metrics/network", networkHandler.ServeHTTP)
 
 	logger.Info("monitoring service listening", "port", port)
 	if err := http.ListenAndServe(":"+port, r); err != nil {
