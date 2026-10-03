@@ -6,8 +6,10 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/httprate"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -68,10 +70,21 @@ func main() {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write(indexHTML)
 	})
-	r.Get("/api/state", store.GetState)
-	r.Put("/api/state", store.PutState)
-	r.Get("/api/custom", store.ListCustom)
-	r.Post("/api/custom", store.AddCustom)
+	r.With(httprate.LimitByIP(5, time.Minute)).Post("/login", store.Login)
+	r.With(httprate.LimitByIP(5, time.Minute)).Post("/signup", store.Signup)
+	r.Post("/logout", store.Logout)
+	r.Route("/api", func(r chi.Router) {
+		r.Use(store.WithSession)
+		r.Get("/state", store.GetState)
+		r.Patch("/state", store.PatchState)
+		r.Get("/custom", store.ListCustom)
+		r.Post("/custom", store.AddCustom)
+		r.Get("/team", store.GetTeam)
+		r.Get("/me", store.GetMe)
+		r.Put("/me", store.PutMe)
+		r.Post("/invites", store.CreateInvite)
+		r.Post("/invites/{token}/join", store.JoinTeam)
+	})
 
 	logger.Info("assiette service listening", "port", cfg.ServerPort)
 	if err := http.ListenAndServe(":"+cfg.ServerPort, r); err != nil {

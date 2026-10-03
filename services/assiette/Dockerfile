@@ -7,12 +7,13 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 go build -o assiette .
+RUN CGO_ENABLED=0 go build -o assiette . && CGO_ENABLED=0 go build -o seed ./cmd/seed
 
 # ---- Stage 2: Runtime ----
 FROM alpine:3.21
 
 COPY --from=builder /app/assiette /assiette
+COPY --from=builder /app/seed /seed
 COPY --from=builder /app/migrations /migrations
 
 EXPOSE 8080
