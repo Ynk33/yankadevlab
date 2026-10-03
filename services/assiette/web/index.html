@@ -245,7 +245,7 @@ const rayonName=r=>T().rayon[r]||r;
 const monthName=()=>T().months[MONTH-1];
 
 /* ---------- state ---------- */
-const DEFAULT={tab:"all",lang:"fr",decks:{},mine:{},done:{},favs:{},dislikes:{},bought:{},extras:[],prefs:{persons:2,exclusions:"",envies:""}};
+const DEFAULT={tab:"all",lang:"fr",decks:{},mine:{},done:{},favs:{},dislikes:{},bought:{},extras:{},prefs:{persons:2,exclusions:"",envies:""}};
 const S={st:clone(DEFAULT),view:"discover",query:"",sheet:null,sheetPersons:null,loaded:false,gen:false,genMsg:"",genErr:"",auth:null,authErr:"",invite:null,team:[],lang:"fr",refreshing:false};
 
 const httpError=(path,status)=>Object.assign(new Error(path+" "+status),{status});
@@ -351,8 +351,8 @@ function dislike(id){
   S.sheet=null;save();toast(tx("tNever"));render();
 }
 function removeExtra(id){
-  const i=S.st.extras.findIndex(x=>x.id===id);if(i<0)return;const [prev]=S.st.extras.splice(i,1);save();
-  toast(tx("tExtraRm"),()=>{S.st.extras.splice(i,0,prev);save();render()});render();
+  const prev=S.st.extras[id];if(!prev)return;delete S.st.extras[id];save();
+  toast(tx("tExtraRm"),()=>{S.st.extras[id]=prev;save();render()});render();
 }
 function undislike(id){delete S.st.dislikes[id];save();toast(tx("tReallow"));render()}
 
@@ -368,8 +368,8 @@ function shoppingGroups(){
   const t=totals();const todo={},done=[];const cmp=(a,b)=>ingName(a.name).localeCompare(ingName(b.name),LANG);
   for(const it of t.values()){const b=S.st.bought[it.key]||0;const rem=it.qty-b;
     if(rem>it.qty*0.001+1e-9)(todo[it.rayon]=todo[it.rayon]||[]).push({...it,rem,partial:b>0});else done.push(it)}
-  for(const x of S.st.extras){const it={key:"x:"+x.id,name:x.name,rayon:x.rayon,extra:true};if(x.done)done.push(it);else(todo[x.rayon]=todo[x.rayon]||[]).push(it)}
-  return {groups:RAYONS.filter(r=>todo[r]).map(r=>({rayon:r,items:todo[r].sort(cmp)})),done:done.sort(cmp),count:t.size+S.st.extras.length};
+  for(const [id,x] of Object.entries(S.st.extras)){const it={key:"x:"+id,name:x.name,rayon:x.rayon,extra:true};if(x.done)done.push(it);else(todo[x.rayon]=todo[x.rayon]||[]).push(it)}
+  return {groups:RAYONS.filter(r=>todo[r]).map(r=>({rayon:r,items:todo[r].sort(cmp)})),done:done.sort(cmp),count:t.size+Object.keys(S.st.extras).length};
 }
 
 /* ---------- AI: add recipes ---------- */
@@ -631,7 +631,7 @@ document.addEventListener("click",e=>safe(()=>{
 document.addEventListener("change",e=>safe(()=>{
   const b=e.target.closest("[data-buy],[data-unbuy]");if(!b)return;
   const key=b.dataset.buy||b.dataset.unbuy;
-  if(key.startsWith("x:")){const x=S.st.extras.find(x=>"x:"+x.id===key);if(!x)return;x.done=!!b.dataset.buy}
+  if(key.startsWith("x:")){const x=S.st.extras[key.slice(2)];if(!x)return;x.done=!!b.dataset.buy}
   else{const t=totals().get(key);if(!t)return;if(b.dataset.buy)S.st.bought[key]=t.qty;else delete S.st.bought[key]}
   save();setTimeout(render,b.dataset.buy?250:0);
 }));
@@ -641,7 +641,7 @@ document.addEventListener("submit",e=>safe(()=>{
   if(e.target.matches("[data-form=extra]")){e.preventDefault();
     const f=new FormData(e.target);const name=String(f.get("name")||"").trim();if(!name)return;
     const rayon=RAYONS.includes(f.get("rayon"))?f.get("rayon"):"Épicerie";
-    S.st.extras.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name,rayon,done:false});
+    S.st.extras[Date.now().toString(36)+Math.random().toString(36).slice(2,6)]={name,rayon,done:false};
     save();render();const i=$("form.extra input");i&&i.focus();return}
   if(!e.target.matches("[data-form=prefs]"))return;e.preventDefault();
   const f=new FormData(e.target);
@@ -661,7 +661,8 @@ function applyState(st){
   Store.synced=clone(st||{});
   if(st){const base=clone(DEFAULT);S.st={...base,...st,prefs:{...base.prefs,...(st.prefs||{})}};
     for(const k of ["decks","mine","done","favs","dislikes","bought"])if(!S.st[k]||typeof S.st[k]!=="object"||Array.isArray(S.st[k]))S.st[k]={};
-    if(!Array.isArray(S.st.extras))S.st.extras=[];
+    if(Array.isArray(S.st.extras))S.st.extras=Object.fromEntries(S.st.extras.filter(x=>x&&x.id).map(({id,...x})=>[id,x]));
+    else if(!isObj(S.st.extras))S.st.extras={};
     if(Array.isArray(st.deck)){if(!S.st.decks.all)S.st.decks.all=st.deck;delete S.st.deck}}
   if(!TAB_KEYS.includes(S.st.tab))S.st.tab="all";
   if(Store.mode==="api")delete S.st.lang;
