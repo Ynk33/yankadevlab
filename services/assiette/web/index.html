@@ -78,8 +78,9 @@ details.basket{margin-top:20px}
 details.basket summary{cursor:pointer;color:var(--muted);margin-bottom:8px}
 form.extra{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
 form.extra input,form.extra select{padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card)}
-form.extra input{flex:1 1 100%;min-width:0}
-form.extra select{flex:1;min-width:0}
+form.extra input{flex:3 1 220px;min-width:0}
+form.extra .pick{display:flex;gap:8px;flex:1 0 auto}
+form.extra select{flex:1}
 .item .rm{margin-left:auto;background:none;border:0;color:var(--muted);padding:0 4px;font-size:1.1rem;line-height:1}
 
 /* plus */
@@ -455,7 +456,7 @@ function shopView(){
   const {groups,done,count}=shoppingGroups();
   const left=groups.reduce((n,g)=>n+g.items.length,0);
   let h=`<header class="top"><div><h1>${esc(tx("nav").shop)}</h1><p class="muted">${esc(count?tx("shopLeft",left):tx("shopNone"))}</p></div>${groups.length?`<button class="btn ghost sm" data-act="copy">${esc(tx("copy"))}</button>`:""}</header>`;
-  h+=`<form class="extra" data-form="extra"><input name="name" required maxlength="80" placeholder="${esc(tx("extraPh"))}" aria-label="${esc(tx("extraPh"))}"><select name="rayon" aria-label="${esc(tx("extraRayon"))}">${RAYONS.map(r=>`<option value="${esc(r)}" ${r==="Épicerie"?"selected":""}>${esc(rayonName(r))}</option>`).join("")}</select><button class="btn sm" type="submit">${esc(tx("add"))}</button></form>`;
+  h+=`<form class="extra" data-form="extra"><input name="name" required maxlength="80" placeholder="${esc(tx("extraPh"))}" aria-label="${esc(tx("extraPh"))}"><div class="pick"><select name="rayon" aria-label="${esc(tx("extraRayon"))}">${RAYONS.map(r=>`<option value="${esc(r)}" ${r==="Épicerie"?"selected":""}>${esc(rayonName(r))}</option>`).join("")}</select><button class="btn sm" type="submit">${esc(tx("add"))}</button></div></form>`;
   if(!count)return h+`<div class="empty"><p class="muted">${esc(tx("shopEmpty"))}</p></div>`;
   if(!groups.length)h+=`<div class="empty"><p class="muted">${esc(tx("allBasket"))}</p></div>`;
   for(const g of groups)h+=`<section class="aisle"><h3>${esc(rayonName(g.rayon))}</h3><div class="list">${g.items.map(it=>`<label class="item"><input type="checkbox" data-buy="${esc(it.key)}"><span class="n">${esc(ingName(it.name))}</span>${it.extra?rmHTML(it):`<span class="q">${it.partial?esc(tx("still")):""}${esc(fmtQty(it.rem,it.unit))}</span>`}</label>`).join("")}</div></section>`;
