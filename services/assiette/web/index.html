@@ -76,6 +76,11 @@ h1{font-size:2.1rem}h2{font-size:1.45rem}h3{font-size:1.15rem}
 .item.done .n,.item.done .q{text-decoration:line-through;opacity:.55}
 details.basket{margin-top:20px}
 details.basket summary{cursor:pointer;color:var(--muted);margin-bottom:8px}
+form.extra{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+form.extra input,form.extra select{padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card)}
+form.extra input{flex:1 1 100%;min-width:0}
+form.extra select{flex:1;min-width:0}
+.item .rm{margin-left:auto;background:none;border:0;color:var(--muted);padding:0 4px;font-size:1.1rem;line-height:1}
 
 /* plus */
 .section{margin-top:28px}
@@ -158,8 +163,9 @@ fr:{
   add:"Ajouter",added:"✓ Ajoutée",done:"Fait",remove:"Retirer",addMine:"Ajouter à mes recettes",fav:"Favori",never:"Jamais",close:"Fermer",
   pers:n=>n+" pers.",lessP:"Une personne de moins",moreP:"Une personne de plus",persGroup:"Nombre de personnes",
   mineSub:n=>n+" à cuisiner",mineEmpty:"Ajoute des recettes depuis Découvrir pour composer ta liste de courses.",goDiscover:"Découvrir des recettes",
-  shopLeft:n=>n+" article"+(n>1?"s":"")+" restant"+(n>1?"s":""),shopNone:"Rien à acheter",copy:"Copier",shopEmpty:"La liste se remplit avec les ingrédients de tes recettes.",
+  shopLeft:n=>n+" article"+(n>1?"s":"")+" restant"+(n>1?"s":""),shopNone:"Rien à acheter",copy:"Copier",shopEmpty:"La liste se remplit avec les ingrédients de tes recettes, ou ajoute tes propres articles.",
   allBasket:"Tout est dans le panier.",basket:n=>"Dans le panier ("+n+")",still:"encore ",copied:"Liste copiée",copyFail:"Copie impossible ici",
+  extraPh:"Ajouter un article",extraRayon:"Rayon",extraRm:"Supprimer",tExtraRm:"Article supprimé",
   favs:"Favoris",favsSub:"Ils reviennent dans Découvrir, même après les avoir faits.",favsEmpty:"Touche ♥ dans une recette pour la garder ici.",
   neverT:"Jamais",neverSub:"Ces recettes ne sont plus proposées.",neverEmpty:"Aucune pour l'instant.",reallow:"Réautoriser",
   settings:"Réglages",lang:"Langue",defP:"Personnes par défaut",defPSub:"Utilisé quand tu ajoutes une recette",excl:"Exclusions",exclSub:"Séparées par des virgules. Les recettes qui en contiennent sont masquées.",exclPh:"Ex. : coriandre, agneau",
@@ -185,8 +191,9 @@ en:{
   add:"Add",added:"✓ Added",done:"Done",remove:"Remove",addMine:"Add to my recipes",fav:"Favourite",never:"Never",close:"Close",
   pers:n=>n+" serv.",lessP:"One serving less",moreP:"One serving more",persGroup:"Servings",
   mineSub:n=>n+" to cook",mineEmpty:"Add recipes from Discover to build your shopping list.",goDiscover:"Discover recipes",
-  shopLeft:n=>n+" item"+(n>1?"s":"")+" left",shopNone:"Nothing to buy",copy:"Copy",shopEmpty:"The list fills up with your recipes' ingredients.",
+  shopLeft:n=>n+" item"+(n>1?"s":"")+" left",shopNone:"Nothing to buy",copy:"Copy",shopEmpty:"The list fills up with your recipes' ingredients, or add your own items.",
   allBasket:"Everything is in the basket.",basket:n=>"In the basket ("+n+")",still:"still ",copied:"List copied",copyFail:"Copying isn't available here",
+  extraPh:"Add an item",extraRayon:"Aisle",extraRm:"Delete",tExtraRm:"Item deleted",
   favs:"Favourites",favsSub:"They come back in Discover, even after you've cooked them.",favsEmpty:"Tap ♥ on a recipe to keep it here.",
   neverT:"Never",neverSub:"These recipes are no longer suggested.",neverEmpty:"None yet.",reallow:"Allow again",
   settings:"Settings",lang:"Language",defP:"Default servings",defPSub:"Used when you add a recipe",excl:"Exclusions",exclSub:"Comma-separated, in French or English. Recipes containing them are hidden.",exclPh:"E.g. coriander, lamb",
@@ -222,7 +229,7 @@ const rayonName=r=>T().rayon[r]||r;
 const monthName=()=>T().months[MONTH-1];
 
 /* ---------- state ---------- */
-const DEFAULT={tab:"all",lang:"fr",decks:{},mine:{},done:{},favs:{},dislikes:{},bought:{},prefs:{persons:2,exclusions:"",envies:""}};
+const DEFAULT={tab:"all",lang:"fr",decks:{},mine:{},done:{},favs:{},dislikes:{},bought:{},extras:[],prefs:{persons:2,exclusions:"",envies:""}};
 const S={st:clone(DEFAULT),view:"discover",query:"",sheet:null,sheetPersons:null,loaded:false,gen:false,genMsg:"",genErr:""};
 
 const Store={
@@ -316,6 +323,10 @@ function dislike(id){
   S.st.dislikes[id]=Date.now();delete S.st.favs[id];delete S.st.mine[id];clampBought();
   S.sheet=null;save();toast(tx("tNever"));render();
 }
+function removeExtra(id){
+  const i=S.st.extras.findIndex(x=>x.id===id);if(i<0)return;const [prev]=S.st.extras.splice(i,1);save();
+  toast(tx("tExtraRm"),()=>{S.st.extras.splice(i,0,prev);save();render()});render();
+}
 function undislike(id){delete S.st.dislikes[id];save();toast(tx("tReallow"));render()}
 
 /* ---------- shopping ---------- */
@@ -330,7 +341,8 @@ function shoppingGroups(){
   const t=totals();const todo={},done=[];const cmp=(a,b)=>ingName(a.name).localeCompare(ingName(b.name),LANG);
   for(const it of t.values()){const b=S.st.bought[it.key]||0;const rem=it.qty-b;
     if(rem>it.qty*0.001+1e-9)(todo[it.rayon]=todo[it.rayon]||[]).push({...it,rem,partial:b>0});else done.push(it)}
-  return {groups:RAYONS.filter(r=>todo[r]).map(r=>({rayon:r,items:todo[r].sort(cmp)})),done:done.sort(cmp),count:t.size};
+  for(const x of S.st.extras){const it={key:"x:"+x.id,name:x.name,rayon:x.rayon,extra:true};if(x.done)done.push(it);else(todo[x.rayon]=todo[x.rayon]||[]).push(it)}
+  return {groups:RAYONS.filter(r=>todo[r]).map(r=>({rayon:r,items:todo[r].sort(cmp)})),done:done.sort(cmp),count:t.size+S.st.extras.length};
 }
 
 /* ---------- AI: add recipes ---------- */
@@ -443,12 +455,14 @@ function shopView(){
   const {groups,done,count}=shoppingGroups();
   const left=groups.reduce((n,g)=>n+g.items.length,0);
   let h=`<header class="top"><div><h1>${esc(tx("nav").shop)}</h1><p class="muted">${esc(count?tx("shopLeft",left):tx("shopNone"))}</p></div>${groups.length?`<button class="btn ghost sm" data-act="copy">${esc(tx("copy"))}</button>`:""}</header>`;
+  h+=`<form class="extra" data-form="extra"><input name="name" required maxlength="80" placeholder="${esc(tx("extraPh"))}" aria-label="${esc(tx("extraPh"))}"><select name="rayon" aria-label="${esc(tx("extraRayon"))}">${RAYONS.map(r=>`<option value="${esc(r)}" ${r==="Épicerie"?"selected":""}>${esc(rayonName(r))}</option>`).join("")}</select><button class="btn sm" type="submit">${esc(tx("add"))}</button></form>`;
   if(!count)return h+`<div class="empty"><p class="muted">${esc(tx("shopEmpty"))}</p></div>`;
   if(!groups.length)h+=`<div class="empty"><p class="muted">${esc(tx("allBasket"))}</p></div>`;
-  for(const g of groups)h+=`<section class="aisle"><h3>${esc(rayonName(g.rayon))}</h3><div class="list">${g.items.map(it=>`<label class="item"><input type="checkbox" data-buy="${esc(it.key)}"><span class="n">${esc(ingName(it.name))}</span><span class="q">${it.partial?esc(tx("still")):""}${esc(fmtQty(it.rem,it.unit))}</span></label>`).join("")}</div></section>`;
-  if(done.length)h+=`<details class="basket"><summary>${esc(tx("basket",done.length))}</summary><div class="list">${done.map(it=>`<label class="item done"><input type="checkbox" checked data-unbuy="${esc(it.key)}"><span class="n">${esc(ingName(it.name))}</span><span class="q">${esc(fmtQty(it.qty,it.unit))}</span></label>`).join("")}</div></details>`;
+  for(const g of groups)h+=`<section class="aisle"><h3>${esc(rayonName(g.rayon))}</h3><div class="list">${g.items.map(it=>`<label class="item"><input type="checkbox" data-buy="${esc(it.key)}"><span class="n">${esc(ingName(it.name))}</span>${it.extra?rmHTML(it):`<span class="q">${it.partial?esc(tx("still")):""}${esc(fmtQty(it.rem,it.unit))}</span>`}</label>`).join("")}</div></section>`;
+  if(done.length)h+=`<details class="basket"><summary>${esc(tx("basket",done.length))}</summary><div class="list">${done.map(it=>`<label class="item done"><input type="checkbox" checked data-unbuy="${esc(it.key)}"><span class="n">${esc(ingName(it.name))}</span>${it.extra?rmHTML(it):`<span class="q">${esc(fmtQty(it.qty,it.unit))}</span>`}</label>`).join("")}</div></details>`;
   return h;
 }
+const rmHTML=it=>`<button type="button" class="rm" data-act="rmextra" data-id="${esc(it.key.slice(2))}" aria-label="${esc(tx("extraRm"))} ${esc(it.name)}">×</button>`;
 function plusView(){
   const favs=Object.keys(S.st.favs).map(id=>CATALOG[id]).filter(Boolean).sort((a,b)=>S.st.favs[b.id]-S.st.favs[a.id]);
   const dl=Object.keys(S.st.dislikes).map(id=>CATALOG[id]).filter(Boolean);
@@ -533,16 +547,23 @@ document.addEventListener("click",e=>safe(()=>{
     case "reshuffle":newDeck();render();window.scrollTo(0,0);break;
     case "generate":generateRecipes();break;
     case "copy":copyList();break;
+    case "rmextra":removeExtra(id);break;
   }
 }));
 document.addEventListener("change",e=>safe(()=>{
   const b=e.target.closest("[data-buy],[data-unbuy]");if(!b)return;
-  const key=b.dataset.buy||b.dataset.unbuy;const t=totals().get(key);if(!t)return;
-  if(b.dataset.buy)S.st.bought[key]=t.qty;else delete S.st.bought[key];
+  const key=b.dataset.buy||b.dataset.unbuy;
+  if(key.startsWith("x:")){const x=S.st.extras.find(x=>"x:"+x.id===key);if(!x)return;x.done=!!b.dataset.buy}
+  else{const t=totals().get(key);if(!t)return;if(b.dataset.buy)S.st.bought[key]=t.qty;else delete S.st.bought[key]}
   save();setTimeout(render,b.dataset.buy?250:0);
 }));
 document.addEventListener("input",e=>{if(e.target.matches("[data-search]")){S.query=e.target.value;$("#results").innerHTML=resultsHTML()}});
 document.addEventListener("submit",e=>safe(()=>{
+  if(e.target.matches("[data-form=extra]")){e.preventDefault();
+    const f=new FormData(e.target);const name=String(f.get("name")||"").trim();if(!name)return;
+    const rayon=RAYONS.includes(f.get("rayon"))?f.get("rayon"):"Épicerie";
+    S.st.extras.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name,rayon,done:false});
+    save();render();const i=$("form.extra input");i&&i.focus();return}
   if(!e.target.matches("[data-form=prefs]"))return;e.preventDefault();
   const f=new FormData(e.target);
   S.st.prefs={persons:Math.min(12,Math.max(1,parseInt(f.get("persons"))||2)),exclusions:String(f.get("exclusions")||""),envies:String(f.get("envies")||"")};
@@ -560,6 +581,7 @@ async function copyList(){
 function applyState(st){
   if(st){const base=clone(DEFAULT);S.st={...base,...st,prefs:{...base.prefs,...(st.prefs||{})}};
     for(const k of ["decks","mine","done","favs","dislikes","bought"])if(!S.st[k]||typeof S.st[k]!=="object"||Array.isArray(S.st[k]))S.st[k]={};
+    if(!Array.isArray(S.st.extras))S.st.extras=[];
     if(Array.isArray(st.deck)){if(!S.st.decks.all)S.st.decks.all=st.deck;delete S.st.deck}}
   if(!TAB_KEYS.includes(S.st.tab))S.st.tab="all";
   LANG=S.st.lang==="en"?"en":"fr";
