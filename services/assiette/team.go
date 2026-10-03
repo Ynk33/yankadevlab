@@ -17,6 +17,7 @@ import (
 const (
 	inviteTTL         = 7 * 24 * time.Hour
 	minPasswordLength = 8
+	maxPasswordBytes  = 72
 )
 
 var errInvalidInvite = errors.New("invalid or expired invite")
@@ -66,6 +67,10 @@ func (h *StoreHandler) CreateInvite(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
+	if _, err := h.DB.ExecContext(ctx, `DELETE FROM assiette.invites WHERE expires_at < now()`); err != nil {
+		h.internalError(w, "failed to purge expired invites", err)
+		return
+	}
 	if _, err := h.DB.ExecContext(ctx,
 		`INSERT INTO assiette.invites (token_hash, team_id, created_by, expires_at) VALUES ($1, $2, $3, $4)`,
 		hashToken(token), teamIDFrom(ctx), userIDFrom(ctx), time.Now().Add(inviteTTL)); err != nil {
@@ -134,8 +139,8 @@ func (h *StoreHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"invite token and valid email are required"}`, http.StatusBadRequest)
 		return
 	}
-	if len(req.Password) < minPasswordLength {
-		http.Error(w, `{"error":"password must be at least 8 characters"}`, http.StatusBadRequest)
+	if len(req.Password) < minPasswordLength || len(req.Password) > maxPasswordBytes {
+		http.Error(w, `{"error":"password must be between 8 characters and 72 bytes"}`, http.StatusBadRequest)
 		return
 	}
 

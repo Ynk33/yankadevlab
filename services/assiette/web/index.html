@@ -571,7 +571,7 @@ function sheetHTML(){
     <h2 id="sheet-title">${esc(L.title)}</h2>
     <p class="muted" style="margin:0">${esc(metaLine(r))}${r.custom?esc(tx("byClaude")):""}</p>
     ${seasonLine(r)}
-    <div class="nutri"><div><b>${r.kcal??"–"}</b><span>${esc(tx("kcal"))}</span></div><div><b>${r.proteines??"–"} g</b><span>${esc(tx("prot_"))}</span></div><div><b>${r.fibres??"–"} g</b><span>${esc(tx("fibre"))}</span></div></div>
+    <div class="nutri"><div><b>${esc(r.kcal??"–")}</b><span>${esc(tx("kcal"))}</span></div><div><b>${esc(r.proteines??"–")} g</b><span>${esc(tx("prot_"))}</span></div><div><b>${esc(r.fibres??"–")} g</b><span>${esc(tx("fibre"))}</span></div></div>
     <p class="muted small" style="margin:0">${esc(tx("estim"))}</p>
     ${L.highlights.length?`<ul class="chips">${L.highlights.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}
     <h3>${esc(tx("ings"))} <span class="stepper" role="group" aria-label="${esc(tx("persGroup"))}"><button data-act="sminus" aria-label="${esc(tx("lessP"))}">−</button><span>${esc(tx("pers",persons))}</span><button data-act="splus" aria-label="${esc(tx("moreP"))}">+</button></span></h3>
