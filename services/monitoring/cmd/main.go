@@ -12,11 +12,11 @@ import (
 )
 
 const (
-	cpuQuery   = `100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)`
+	cpuQuery   = `100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[30s])) * 100)`
 	ramQuery   = `100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)`
 	diskQuery  = `100 * (1 - node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})`
-	netRxQuery = `sum(rate(node_network_receive_bytes_total{device!="lo"}[5m]))`
-	netTxQuery = `sum(rate(node_network_transmit_bytes_total{device!="lo"}[5m]))`
+	netRxQuery = `sum(irate(node_network_receive_bytes_total{device!="lo"}[30s]))`
+	netTxQuery = `sum(irate(node_network_transmit_bytes_total{device!="lo"}[30s]))`
 )
 
 func main() {

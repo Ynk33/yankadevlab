@@ -23,7 +23,7 @@ export function NetworkCard() {
     <MetricCard
       icon={NetworkIcon}
       title="Network I/O"
-      description="Traffic, 5 min average"
+      description="Current traffic"
       loading={loading}
       error={error}
       onRefresh={refetch}
