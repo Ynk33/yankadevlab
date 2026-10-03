@@ -1,18 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
-import { useAuth } from "@/hooks/use-auth";
 
 const API_BASE = import.meta.env.VITE_MONITORING_API_URL ?? "";
 
 export function useMetric<T>(path: string) {
-  const { authFetch } = useAuth();
   const [data, setData] = useState<T | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);
 
   const load = useCallback(
     () =>
-      authFetch(`${API_BASE}${path}`)
+      fetch(`${API_BASE}${path}`, { credentials: "include" })
         .then((res) => {
+          if (res.status === 401) window.location.reload();
           if (!res.ok) throw new Error(`Request failed (${res.status})`);
           return res.json();
         })
@@ -23,7 +22,7 @@ export function useMetric<T>(path: string) {
           ),
         )
         .finally(() => setLoading(false)),
-    [authFetch, path],
+    [path],
   );
 
   useEffect(() => {

@@ -118,7 +118,22 @@ A personal micro-services suite — self-hosted tools for everyday life.
 
 ## Standalone Apps
 
-- [x] **Assiette** — Recipes & shopping list (single-file app + Go/Postgres persistence, SSO via auth service session cookie) at assiette.yankadevlab.tech
+- [x] **Assiette** — Recipes & shopping list (single-file app + Go/Postgres persistence) at assiette.yankadevlab.tech
+
+## Access
+
+A service is private when its Traefik router has the `middlewares=auth-verify` label in `docker-compose.yml`.
+Private services redirect to the login page served by the auth service; the resulting `session` cookie on
+`.yankadevlab.tech` is shared by every subdomain (SSO).
+
+| Service    | Host                          | Access                     |
+|------------|-------------------------------|----------------------------|
+| auth       | auth.yankadevlab.tech         | Public (login page)        |
+| dashboard  | dashboard.yankadevlab.tech    | Private (SSO)              |
+| monitoring | monitoring.yankadevlab.tech   | Private (SSO)              |
+| assiette   | assiette.yankadevlab.tech     | Public                     |
+| cv-site    | yannicktirand.xyz             | Public                     |
+| traefik    | traefik.yankadevlab.tech      | Basic auth                 |
 
 ## Future Ideas (backlog)
 

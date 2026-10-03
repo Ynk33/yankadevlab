@@ -7,13 +7,14 @@ import (
 )
 
 type Config struct {
-	DatabaseURL          string
-	JWTSecret            string
-	AccessTokenDuration  time.Duration
-	RefreshTokenDuration time.Duration
-	ServerPort           string
-	CookieDomain         string
-	LoginURL             string
+	DatabaseURL         string
+	JWTSecret           string
+	AccessTokenDuration time.Duration
+	SessionDuration     time.Duration
+	ServerPort          string
+	CookieDomain        string
+	LoginURL            string
+	DefaultRedirectURL  string
 }
 
 func LoadConfig() (*Config, error) {
@@ -37,8 +38,13 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("LOGIN_URL is required")
 	}
 
+	defaultRedirectURL := os.Getenv("DEFAULT_REDIRECT_URL")
+	if defaultRedirectURL == "" {
+		return nil, fmt.Errorf("DEFAULT_REDIRECT_URL is required")
+	}
+
 	accessDuration := 15 * time.Minute
-	refreshDuration := 7 * 24 * time.Hour
+	sessionDuration := 7 * 24 * time.Hour
 
 	port := os.Getenv("SERVER_PORT")
 	if port == "" {
@@ -46,12 +52,13 @@ func LoadConfig() (*Config, error) {
 	}
 
 	return &Config{
-		DatabaseURL:          dbURL,
-		JWTSecret:            jwtSecret,
-		AccessTokenDuration:  accessDuration,
-		RefreshTokenDuration: refreshDuration,
-		ServerPort:           port,
-		CookieDomain:         cookieDomain,
-		LoginURL:             loginURL,
+		DatabaseURL:         dbURL,
+		JWTSecret:           jwtSecret,
+		AccessTokenDuration: accessDuration,
+		SessionDuration:     sessionDuration,
+		ServerPort:          port,
+		CookieDomain:        cookieDomain,
+		LoginURL:            loginURL,
+		DefaultRedirectURL:  defaultRedirectURL,
 	}, nil
 }

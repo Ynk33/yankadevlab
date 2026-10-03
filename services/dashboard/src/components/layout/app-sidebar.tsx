@@ -13,17 +13,16 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { LogOutIcon } from "lucide-react";
+
+const AUTH_URL = import.meta.env.VITE_AUTH_API_URL ?? "";
 
 const navItems = [
   { title: "Home", to: "/", icon: HomeIcon },
 ];
 
 export function AppSidebar() {
-  const { logout } = useAuth();
-
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -64,16 +63,18 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-2"
-              onClick={logout}
-            >
-              <LogOutIcon className="size-4" />
-              <span className="group-data-[collapsible=icon]:hidden">
-                Sign out
-              </span>
-            </Button>
+            <form method="post" action={`${AUTH_URL}/logout`}>
+              <Button
+                type="submit"
+                variant="ghost"
+                className="w-full justify-start gap-2"
+              >
+                <LogOutIcon className="size-4" />
+                <span className="group-data-[collapsible=icon]:hidden">
+                  Sign out
+                </span>
+              </Button>
+            </form>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
