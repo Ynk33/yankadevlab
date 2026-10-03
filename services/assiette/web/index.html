@@ -35,6 +35,11 @@ h1{font-size:2.1rem}h2{font-size:1.45rem}h3{font-size:1.15rem}
 .btn.danger{background:transparent;color:var(--danger);border:1px solid currentColor}
 .btn.sm{padding:7px 13px;font-size:.875rem}
 .btn.on{background:var(--soft);color:var(--ink);border:1px solid var(--accent)}
+.btn.icon{padding:8px;display:inline-flex;align-items:center;justify-content:center;line-height:0}
+.btn.icon.spin svg{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.btn.icon.spin svg{animation:none}}
+.top-actions{display:flex;gap:8px;align-items:center}
 
 /* filters */
 .seg{display:inline-flex;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px}
@@ -177,7 +182,12 @@ fr:{
   tAddedMine:"Ajoutée à mes recettes",tRemoved:"Retirée de mes recettes",undo:"Annuler",tDone:"Marquée comme faite",tFavOn:"Ajoutée aux favoris",tFavOff:"Retirée des favoris",
   confirmNever:x=>"Ne plus jamais proposer « "+x+" » ?",tNever:"Elle ne reviendra plus",tReallow:"Elle peut revenir",saveFail:"Sauvegarde impossible. Réessaie.",loadFail:"Impossible de charger tes données.",
   eNotGranted:"Claude n'est pas autorisé sur cette page. Recharge-la et accepte la demande.",eRate:"Trop de demandes d'un coup. Réessaie dans une minute.",eJson:"Réponse incomplète de Claude. Relance.",eCancel:"Arrêté.",eGen:"L'ajout a échoué. Relance.",eOnly:"L'ajout de recettes fonctionne uniquement dans Claude.",
-  favorite:"favori"
+  favorite:"favori",
+  loginSub:"Connecte-toi pour retrouver tes recettes.",signupSub:"Crée ton compte pour rejoindre l'équipe.",email:"Email",password:"Mot de passe",passwordSub:"8 caractères minimum",
+  login:"Se connecter",signup:"Créer mon compte",haveAccount:"J'ai déjà un compte",noAccount:"Créer un compte avec l'invitation",
+  badCreds:"Email ou mot de passe incorrect.",emailTaken:"Un compte existe déjà pour cet email. Connecte-toi.",inviteGone:"Invitation invalide ou expirée.",tooMany:"Trop de tentatives. Réessaie dans une minute.",badInput:"Vérifie l'email et le mot de passe (8 caractères minimum).",authFail:"Connexion impossible. Réessaie.",
+  confirmJoin:"Rejoindre cette équipe ? Tu partageras ses recettes et sa liste de courses. Si tu es seul·e dans ton équipe actuelle, ses données seront supprimées.",joined:"Équipe rejointe",joinFail:"Impossible de rejoindre l'équipe.",
+  team:"Équipe",teamSub:"Recettes, liste de courses et réglages sont partagés avec ces personnes.",invite:"Inviter quelqu'un",inviteCopied:"Lien d'invitation copié, valable 7 jours",inviteLink:"Lien d'invitation (valable 7 jours)",inviteFail:"Impossible de créer l'invitation.",logout:"Se déconnecter",refresh:"Actualiser",refreshed:"À jour"
 },
 en:{
   nav:{discover:"Discover",mine:"My recipes",shop:"Shopping",plus:"More"},
@@ -205,7 +215,12 @@ en:{
   tAddedMine:"Added to my recipes",tRemoved:"Removed from my recipes",undo:"Undo",tDone:"Marked as done",tFavOn:"Added to favourites",tFavOff:"Removed from favourites",
   confirmNever:x=>"Never suggest “"+x+"” again?",tNever:"It won't come back",tReallow:"It can come back",saveFail:"Couldn't save. Try again.",loadFail:"Couldn't load your data.",
   eNotGranted:"Claude isn't allowed on this page. Reload it and accept the request.",eRate:"Too many requests at once. Try again in a minute.",eJson:"Claude's answer was incomplete. Try again.",eCancel:"Stopped.",eGen:"Adding recipes failed. Try again.",eOnly:"Adding recipes only works inside Claude.",
-  favorite:"favourite"
+  favorite:"favourite",
+  loginSub:"Sign in to get your recipes back.",signupSub:"Create your account to join the team.",email:"Email",password:"Password",passwordSub:"At least 8 characters",
+  login:"Sign in",signup:"Create my account",haveAccount:"I already have an account",noAccount:"Create an account with the invite",
+  badCreds:"Wrong email or password.",emailTaken:"An account already exists for this email. Sign in instead.",inviteGone:"Invalid or expired invite.",tooMany:"Too many attempts. Try again in a minute.",badInput:"Check the email and password (at least 8 characters).",authFail:"Couldn't sign in. Try again.",
+  confirmJoin:"Join this team? You'll share its recipes and shopping list. If you're alone in your current team, its data will be deleted.",joined:"Team joined",joinFail:"Couldn't join the team.",
+  team:"Team",teamSub:"Recipes, shopping list and settings are shared with these people.",invite:"Invite someone",inviteCopied:"Invite link copied, valid for 7 days",inviteLink:"Invite link (valid for 7 days)",inviteFail:"Couldn't create the invite.",logout:"Sign out",refresh:"Refresh",refreshed:"Up to date"
 }};
 let LANG="fr";
 const T=()=>I18N[LANG];
@@ -231,17 +246,26 @@ const monthName=()=>T().months[MONTH-1];
 
 /* ---------- state ---------- */
 const DEFAULT={tab:"all",lang:"fr",decks:{},mine:{},done:{},favs:{},dislikes:{},bought:{},extras:[],prefs:{persons:2,exclusions:"",envies:""}};
-const S={st:clone(DEFAULT),view:"discover",query:"",sheet:null,sheetPersons:null,loaded:false,gen:false,genMsg:"",genErr:""};
+const S={st:clone(DEFAULT),view:"discover",query:"",sheet:null,sheetPersons:null,loaded:false,gen:false,genMsg:"",genErr:"",auth:null,authErr:"",invite:null,team:[],lang:"fr",refreshing:false};
+
+function isObj(o){return !!o&&typeof o==="object"&&!Array.isArray(o)}
+function mergeDiff(a,b){
+  if(!isObj(a)||!isObj(b))return JSON.stringify(a)===JSON.stringify(b)?undefined:b;
+  const p={};let n=0;
+  for(const k of Object.keys(a))if(!(k in b)){p[k]=null;n++}
+  for(const k of Object.keys(b)){const d=mergeDiff(a[k],b[k]);if(d!==undefined){p[k]=d;n++}}
+  return n?p:undefined;
+}
 
 const Store={
-  db:null,uid:null,mode:"local",q:Promise.resolve(),
+  db:null,uid:null,mode:"local",q:Promise.resolve(),synced:{},
   async init(){
     if(!window.claude||!window.claude.use){this.mode="api";return}
     try{const [d,u]=await Promise.all([window.claude.use("db"),window.claude.use("user")]);
       if(d&&u){const id=await u.id();if(id){this.db=d;this.uid=id;this.mode="db"}}}catch(e){console.warn(e)}
   },
   p(n){return "data/users/"+this.uid+"/"+n},
-  async api(path,opt){const r=await fetch(path,opt);if(!r.ok)throw new Error(path+" "+r.status);return r.status===204?null:r.json()},
+  async api(path,opt){const r=await fetch(path,opt);if(r.status===401)showAuth(S.invite?"signup":"login");if(!r.ok)throw httpError(path,r.status);return r.status===204?null:r.json()},
   run(fn){this.q=this.q.then(fn).catch(e=>{console.error(e);toast(tx("saveFail"))});return this.q},
   async getState(){
     if(this.mode==="db"){const s=await this.db.doc(this.p("state")).get();return s.exists?clone(s.data()):null}
@@ -250,7 +274,8 @@ const Store={
   },
   saveState(v){const d=clone(v);return this.run(async()=>{
     if(this.mode==="db")await this.db.doc(this.p("state")).set(d);
-    else if(this.mode==="api"){const body=JSON.stringify(d);await this.api("/api/state",{method:"PUT",headers:{"Content-Type":"application/json"},body,keepalive:body.length<65536})}
+    else if(this.mode==="api"){const patch=mergeDiff(this.synced,d);if(!patch)return;const body=JSON.stringify(patch);
+      await this.api("/api/state",{method:"PATCH",headers:{"Content-Type":"application/json"},body,keepalive:body.length<65536});this.synced=d}
     else{try{localStorage.setItem("assiette2:state",JSON.stringify(d))}catch(e){}}})},
   async listCustom(){
     if(this.mode==="db"){const qs=await this.db.collection(this.p("state/custom")).get();return qs.docs.map(d=>d.data()).filter(Boolean).map(clone)}
@@ -424,7 +449,7 @@ function cardHTML(r,mode){
 }
 function discoverView(){
   const total=Object.keys(CATALOG).length;const tabs=T().tabs;
-  return `<header class="top"><div><h1>${esc(tx("nav").discover)}</h1><p class="muted">${esc(tx("catalog",total))}</p></div></header>
+  return `<header class="top"><div><h1>${esc(tx("nav").discover)}</h1><p class="muted">${esc(tx("catalog",total))}</p></div>${refreshBtn()}</header>
   <input class="search" type="search" placeholder="${esc(tx("search"))}" aria-label="${esc(tx("search"))}" value="${esc(S.query)}" data-search>
   <div class="filters"><div class="seg" role="group">${TAB_KEYS.map(k=>`<button data-tab="${k}" aria-pressed="${S.st.tab===k}">${esc(tabs[k][0])}</button>`).join("")}</div></div>
   <p class="muted small" style="margin:-4px 0 12px">${esc(tabs[S.st.tab][1])}</p>
@@ -448,14 +473,14 @@ function resultsHTML(){
 }
 function mineView(){
   const items=Object.entries(S.st.mine).filter(([id])=>CATALOG[id]).sort((a,b)=>a[1].addedAt-b[1].addedAt).map(([id])=>CATALOG[id]);
-  const h=`<header class="top"><div><h1>${esc(tx("nav").mine)}</h1><p class="muted">${esc(tx("mineSub",items.length))}</p></div></header>`;
+  const h=`<header class="top"><div><h1>${esc(tx("nav").mine)}</h1><p class="muted">${esc(tx("mineSub",items.length))}</p></div>${refreshBtn()}</header>`;
   if(!items.length)return h+`<div class="empty"><p class="muted">${esc(tx("mineEmpty"))}</p><button class="btn" data-view="discover">${esc(tx("goDiscover"))}</button></div>`;
   return h+items.map(r=>cardHTML(r,"mine")).join("");
 }
 function shopView(){
   const {groups,done,count}=shoppingGroups();
   const left=groups.reduce((n,g)=>n+g.items.length,0);
-  let h=`<header class="top"><div><h1>${esc(tx("nav").shop)}</h1><p class="muted">${esc(count?tx("shopLeft",left):tx("shopNone"))}</p></div>${groups.length?`<button class="btn ghost sm" data-act="copy">${esc(tx("copy"))}</button>`:""}</header>`;
+  let h=`<header class="top"><div><h1>${esc(tx("nav").shop)}</h1><p class="muted">${esc(count?tx("shopLeft",left):tx("shopNone"))}</p></div><div class="top-actions">${groups.length?`<button class="btn ghost sm" data-act="copy">${esc(tx("copy"))}</button>`:""}${refreshBtn()}</div></header>`;
   h+=`<form class="extra" data-form="extra"><input name="name" required maxlength="80" placeholder="${esc(tx("extraPh"))}" aria-label="${esc(tx("extraPh"))}"><div class="pick"><select name="rayon" aria-label="${esc(tx("extraRayon"))}">${RAYONS.map(r=>`<option value="${esc(r)}" ${r==="Épicerie"?"selected":""}>${esc(rayonName(r))}</option>`).join("")}</select><button class="btn sm" type="submit">${esc(tx("add"))}</button></div></form>`;
   if(!count)return h+`<div class="empty"><p class="muted">${esc(tx("shopEmpty"))}</p></div>`;
   if(!groups.length)h+=`<div class="empty"><p class="muted">${esc(tx("allBasket"))}</p></div>`;
@@ -468,7 +493,7 @@ function plusView(){
   const favs=Object.keys(S.st.favs).map(id=>CATALOG[id]).filter(Boolean).sort((a,b)=>S.st.favs[b.id]-S.st.favs[a.id]);
   const dl=Object.keys(S.st.dislikes).map(id=>CATALOG[id]).filter(Boolean);
   const p=S.st.prefs;
-  return `<header class="top"><div><h1>${esc(tx("nav").plus)}</h1></div></header>
+  return `<header class="top"><div><h1>${esc(tx("nav").plus)}</h1></div>${refreshBtn()}</header>
   <section><h2>${esc(tx("favs"))}</h2><p class="muted small" style="margin:0 0 12px">${esc(tx("favsSub"))}</p>
   ${favs.length?favs.map(r=>cardHTML(r,"fav")).join(""):`<p class="muted">${esc(tx("favsEmpty"))}</p>`}</section>
   <section class="section"><h2>${esc(tx("neverT"))}</h2><p class="muted small">${esc(tx("neverSub"))}</p>
@@ -480,8 +505,55 @@ function plusView(){
     <label class="f">${esc(tx("excl"))}<span>${esc(tx("exclSub"))}</span><textarea name="exclusions" placeholder="${esc(tx("exclPh"))}">${esc(p.exclusions)}</textarea></label>
     <label class="f">${esc(tx("envies"))}<span>${esc(tx("enviesSub"))}</span><textarea name="envies" placeholder="${esc(tx("enviesPh"))}">${esc(p.envies)}</textarea></label>
     <div><button class="btn" type="submit">${esc(tx("save"))}</button></div>
-    <p class="muted small">${esc(Store.mode==="db"?tx("savedDb"):tx("savedLocal"))}</p>
-  </form></section>`;
+    <p class="muted small">${esc(Store.mode==="local"?tx("savedLocal"):tx("savedDb"))}</p>
+  </form></section>
+  ${Store.mode==="api"?teamHTML():""}`;
+}
+const REFRESH_ICON=`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>`;
+function refreshBtn(){
+  if(Store.mode==="local")return "";
+  return `<button class="btn ghost icon${S.refreshing?" spin":""}" data-act="refresh" aria-label="${esc(tx("refresh"))}" title="${esc(tx("refresh"))}" ${S.refreshing?"disabled":""}>${REFRESH_ICON}</button>`;
+}
+function teamHTML(){
+  return `<section class="section"><h2>${esc(tx("team"))}</h2><p class="muted small">${esc(tx("teamSub"))}</p>
+  ${S.team.map(m=>`<div class="ban"><span>${esc(m.email)}</span></div>`).join("")}
+  <div class="more" style="justify-content:flex-start"><button class="btn sm" data-act="invite">${esc(tx("invite"))}</button><button class="btn ghost sm" data-act="logout">${esc(tx("logout"))}</button></div></section>`;
+}
+function authView(){
+  const signup=S.auth==="signup";
+  return `<header class="top"><div><h1>Assiette</h1><p class="muted">${esc(tx(signup?"signupSub":"loginSub"))}</p></div></header>
+  <form class="prefs" data-form="auth">
+    <label class="f">${esc(tx("email"))}<input type="email" name="email" required autocomplete="email"></label>
+    <label class="f">${esc(tx("password"))}${signup?`<span>${esc(tx("passwordSub"))}</span>`:""}<input type="password" name="password" required ${signup?'minlength="8" autocomplete="new-password"':'autocomplete="current-password"'}></label>
+    ${S.authErr?`<div class="status err" role="alert">${esc(S.authErr)}</div>`:""}
+    <div><button class="btn" type="submit">${esc(tx(signup?"signup":"login"))}</button></div>
+    ${S.invite?`<div><button class="btn ghost sm" type="button" data-act="authmode">${esc(tx(signup?"haveAccount":"noAccount"))}</button></div>`:""}
+  </form>`;
+}
+function showAuth(mode){
+  S.auth=mode;S.loaded=false;S.sheet=null;document.body.style.overflow="";
+  $("#tabs").innerHTML="";$("#sheet-root").innerHTML="";$("#app").innerHTML=authView();
+}
+function authErrText(e){return tx(({400:"badInput",401:"badCreds",409:"emailTaken",410:"inviteGone",429:"tooMany"})[e&&e.status]||"authFail")}
+async function submitAuth(form){
+  const f=new FormData(form);const email=String(f.get("email")||"").trim(),password=String(f.get("password")||"");
+  S.authErr="";
+  const signup=S.auth==="signup";
+  try{
+    const path=signup?"/signup":"/login";
+    const r=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(signup?{token:S.invite,email,password}:{email,password})});
+    if(!r.ok)throw httpError(path,r.status);
+    if(signup)S.invite=null;
+  }catch(e){console.error(e);S.authErr=authErrText(e);showAuth(S.auth);return}
+  S.auth=null;$("#app").innerHTML=`<p class="muted">Chargement…</p>`;boot();
+}
+function saveLang(){S.lang=LANG;const body=JSON.stringify({lang:LANG});return Store.run(()=>Store.api("/api/me",{method:"PUT",headers:{"Content-Type":"application/json"},body}))}
+async function logout(){try{await fetch("/logout",{method:"POST"})}catch(e){}location.reload()}
+async function createInvite(){
+  try{
+    const {token}=await Store.api("/api/invites",{method:"POST"});const url=location.origin+"/#invite="+token;
+    try{await navigator.clipboard.writeText(url);toast(tx("inviteCopied"))}catch(e){prompt(tx("inviteLink"),url)}
+  }catch(e){console.error(e);toast(tx("inviteFail"))}
 }
 function seasonLine(r){const off=offSeason(r);
   return `<p class="small" style="margin:6px 0 0">${esc(off.length?tx("offSeason",monthName(),off.map(ingName).join(", ")):tx("inSeason",monthName()))}${r.world?esc(tx("worldS")):""}${r.batch?esc(tx("keeps")):""}</p>`}
@@ -531,7 +603,7 @@ document.addEventListener("click",e=>safe(()=>{
   const t=e.target.closest("[data-view],[data-open],[data-act],[data-tab],[data-lang]");if(!t)return;
   if(t.dataset.view){S.view=t.dataset.view;S.sheet=null;render();window.scrollTo(0,0);return}
   if(t.dataset.tab){S.st.tab=t.dataset.tab;ensureDeck();save();render();return}
-  if(t.dataset.lang){LANG=S.st.lang=t.dataset.lang;save();render();return}
+  if(t.dataset.lang){LANG=t.dataset.lang;if(Store.mode==="api")saveLang();else{S.st.lang=LANG;save()}render();return}
   if(t.dataset.open){S.sheet={id:t.dataset.open};S.sheetPersons=null;render();return}
   const a=t.dataset.act,id=t.dataset.id||(S.sheet&&S.sheet.id);
   switch(a){
@@ -549,6 +621,10 @@ document.addEventListener("click",e=>safe(()=>{
     case "generate":generateRecipes();break;
     case "copy":copyList();break;
     case "rmextra":removeExtra(id);break;
+    case "invite":createInvite();break;
+    case "refresh":reload(true);break;
+    case "logout":logout();break;
+    case "authmode":S.authErr="";showAuth(S.auth==="signup"?"login":"signup");break;
   }
 }));
 document.addEventListener("change",e=>safe(()=>{
@@ -560,6 +636,7 @@ document.addEventListener("change",e=>safe(()=>{
 }));
 document.addEventListener("input",e=>{if(e.target.matches("[data-search]")){S.query=e.target.value;$("#results").innerHTML=resultsHTML()}});
 document.addEventListener("submit",e=>safe(()=>{
+  if(e.target.matches("[data-form=auth]")){e.preventDefault();submitAuth(e.target);return}
   if(e.target.matches("[data-form=extra]")){e.preventDefault();
     const f=new FormData(e.target);const name=String(f.get("name")||"").trim();if(!name)return;
     const rayon=RAYONS.includes(f.get("rayon"))?f.get("rayon"):"Épicerie";
@@ -580,30 +657,59 @@ async function copyList(){
 
 /* ---------- boot ---------- */
 function applyState(st){
+  Store.synced=clone(st||{});
   if(st){const base=clone(DEFAULT);S.st={...base,...st,prefs:{...base.prefs,...(st.prefs||{})}};
     for(const k of ["decks","mine","done","favs","dislikes","bought"])if(!S.st[k]||typeof S.st[k]!=="object"||Array.isArray(S.st[k]))S.st[k]={};
     if(!Array.isArray(S.st.extras))S.st.extras=[];
     if(Array.isArray(st.deck)){if(!S.st.decks.all)S.st.decks.all=st.deck;delete S.st.deck}}
   if(!TAB_KEYS.includes(S.st.tab))S.st.tab="all";
-  LANG=S.st.lang==="en"?"en":"fr";
+  if(Store.mode==="api")delete S.st.lang;
+  LANG=(Store.mode==="api"?S.lang:S.st.lang)==="en"?"en":"fr";
 }
 document.addEventListener("visibilitychange",async()=>{
   if(Store.mode!=="api"||!S.loaded)return;
   if(document.hidden){if(saveT)save(true);return}
-  if(saveT)return;
-  try{await Store.q;const st=await Store.getState();if(saveT)return;applyState(st);ensureDeck();render()}
-  catch(e){console.error(e)}
+  if(!saveT)reload(false);
 });
-(async function boot(){
+async function loadRemote(){
+  const api=Store.mode==="api";
+  const [st,custom,team,me]=await Promise.all([Store.getState(),Store.listCustom(),api?Store.api("/api/team"):null,api?Store.api("/api/me"):null]);
+  (custom||[]).forEach(r=>{if(r&&r.id&&Array.isArray(r.ingredients))registerCustom(r)});
+  if(team)S.team=team.members||[];
+  if(me)S.lang=me.lang;
+  return st;
+}
+async function reload(manual){
+  if(S.refreshing)return;
+  S.refreshing=true;if(manual)render();
+  try{
+    if(saveT)save(true);
+    await Store.q;
+    const st=await loadRemote();
+    if(saveT)return;
+    applyState(st);ensureDeck();
+    if(manual)toast(tx("refreshed"));
+  }catch(e){console.error(e);if(manual&&!S.auth)toast(tx("loadFail"))}
+  finally{S.refreshing=false;render()}
+}
+async function boot(){
   await Store.init();
+  if(Store.mode==="api"){
+    const m=location.hash.match(/invite=([\w-]+)/);
+    if(m){S.invite=m[1];history.replaceState(null,"",location.pathname+location.search)}
+    try{await Store.api("/api/me")}catch(e){if(S.auth)return;console.error(e)}
+    if(S.invite){const inv=S.invite;S.invite=null;
+      if(confirm(tx("confirmJoin")))try{await Store.api("/api/invites/"+encodeURIComponent(inv)+"/join",{method:"POST"});toast(tx("joined"))}
+      catch(e){console.error(e);if(S.auth)return;toast(tx(e.status===410?"inviteGone":"joinFail"))}}
+  }
   let st=null;
   try{
-    const [s,custom]=await Promise.all([Store.getState(),Store.listCustom()]);st=s;
-    (custom||[]).forEach(r=>{if(r&&r.id&&Array.isArray(r.ingredients))registerCustom(r)});
-  }catch(e){console.error(e);toast(tx("loadFail"))}
+    st=await loadRemote();
+  }catch(e){console.error(e);if(S.auth)return;toast(tx("loadFail"))}
   applyState(st);
   S.loaded=true;ensureDeck();render();
-})();
+}
+boot();
 })();
 </script>
 </body>
