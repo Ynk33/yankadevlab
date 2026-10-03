@@ -5,14 +5,19 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/Ynk33/yankadevlab/services/auth/token"
 )
 
+const sessionRenewAfter = 24 * time.Hour
+
 type VerifyHandler struct {
-	Log       *slog.Logger
-	JWTSecret string
-	LoginURL  string
+	Log             *slog.Logger
+	JWTSecret       string
+	LoginURL        string
+	CookieDomain    string
+	SessionDuration time.Duration
 }
 
 func (h *VerifyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -37,6 +42,7 @@ func (h *VerifyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if cookie, err := r.Cookie(sessionCookieName); err == nil {
 		claims, err := token.ParseAccessToken(cookie.Value, h.JWTSecret)
 		if err == nil {
+			h.renewIfStale(w, claims)
 			h.allow(w, claims)
 			return
 		}
@@ -59,6 +65,17 @@ func (h *VerifyHandler) allow(w http.ResponseWriter, claims *token.Claims) {
 	w.WriteHeader(http.StatusOK)
 
 	h.Log.Info("token verified", "user_id", claims.Subject)
+}
+
+func (h *VerifyHandler) renewIfStale(w http.ResponseWriter, claims *token.Claims) {
+	if claims.IssuedAt == nil || time.Since(claims.IssuedAt.Time) < sessionRenewAfter {
+		return
+	}
+	if err := setSessionCookie(w, claims.Subject, claims.Email, h.JWTSecret, h.CookieDomain, h.SessionDuration); err != nil {
+		h.Log.Error("failed to renew session", "error", err, "user_id", claims.Subject)
+		return
+	}
+	h.Log.Info("session renewed", "user_id", claims.Subject)
 }
 
 func (h *VerifyHandler) loginRedirect(r *http.Request) string {

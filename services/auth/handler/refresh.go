@@ -10,6 +10,10 @@ import (
 	"github.com/Ynk33/yankadevlab/services/auth/token"
 )
 
+type LoginResponse struct {
+	AccessToken string `json:"access_token"`
+}
+
 type RefreshHandler struct {
 	DB                   *sql.DB
 	Log                  *slog.Logger

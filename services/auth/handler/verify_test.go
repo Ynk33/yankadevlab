@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Ynk33/yankadevlab/services/auth/token"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 const testSecret = "test-secret"
@@ -20,6 +21,16 @@ func mustToken(t *testing.T, secret string, duration time.Duration) string {
 		t.Fatal(err)
 	}
 	return tok
+}
+
+func newTestVerifyHandler() *VerifyHandler {
+	return &VerifyHandler{
+		Log:             slog.New(slog.NewTextHandler(io.Discard, nil)),
+		JWTSecret:       testSecret,
+		LoginURL:        "https://dashboard.example.tech/login",
+		CookieDomain:    ".example.tech",
+		SessionDuration: 7 * 24 * time.Hour,
+	}
 }
 
 func TestVerifyHandler(t *testing.T) {
@@ -58,11 +69,7 @@ func TestVerifyHandler(t *testing.T) {
 		{name: "no credentials api", accept: "application/json", wantStatus: http.StatusUnauthorized},
 	}
 
-	h := &VerifyHandler{
-		Log:       slog.New(slog.NewTextHandler(io.Discard, nil)),
-		JWTSecret: testSecret,
-		LoginURL:  "https://dashboard.example.tech/login",
-	}
+	h := newTestVerifyHandler()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -91,6 +98,58 @@ func TestVerifyHandler(t *testing.T) {
 			}
 			if got := rec.Header().Get("X-User-Id"); got != tt.wantUserID {
 				t.Errorf("X-User-Id = %q, want %q", got, tt.wantUserID)
+			}
+		})
+	}
+}
+
+func TestVerifySessionRenewal(t *testing.T) {
+	issuedAgo := func(d time.Duration) string {
+		now := time.Now()
+		claims := token.Claims{
+			RegisteredClaims: jwt.RegisteredClaims{
+				Subject:   "user-1",
+				IssuedAt:  jwt.NewNumericDate(now.Add(-d)),
+				ExpiresAt: jwt.NewNumericDate(now.Add(time.Hour)),
+			},
+			Email: "me@example.com",
+		}
+		tok, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(testSecret))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return tok
+	}
+
+	tests := []struct {
+		name      string
+		cookie    string
+		wantRenew bool
+	}{
+		{name: "fresh session", cookie: issuedAgo(time.Hour), wantRenew: false},
+		{name: "stale session", cookie: issuedAgo(48 * time.Hour), wantRenew: true},
+	}
+
+	h := newTestVerifyHandler()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/verify", nil)
+			req.AddCookie(&http.Cookie{Name: sessionCookieName, Value: tt.cookie})
+
+			rec := httptest.NewRecorder()
+			h.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+			}
+			renewed := false
+			for _, c := range rec.Result().Cookies() {
+				if c.Name == sessionCookieName && c.Value != "" {
+					renewed = true
+				}
+			}
+			if renewed != tt.wantRenew {
+				t.Errorf("renewed = %v, want %v", renewed, tt.wantRenew)
 			}
 		})
 	}

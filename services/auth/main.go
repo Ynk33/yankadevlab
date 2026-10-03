@@ -2,6 +2,8 @@ package main
 
 import (
 	"database/sql"
+	_ "embed"
+	"html/template"
 	"log/slog"
 	"net/http"
 	"os"
@@ -17,6 +19,9 @@ import (
 
 	"github.com/Ynk33/yankadevlab/services/auth/handler"
 )
+
+//go:embed web/login.html
+var loginHTML string
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
@@ -61,12 +66,13 @@ func main() {
 	go startTokenCleanup(db, logger, 1*time.Hour)
 
 	loginHandler := &handler.LoginHandler{
-		DB:                   db,
-		Log:                  logger,
-		JWTSecret:            cfg.JWTSecret,
-		AccessTokenDuration:  cfg.AccessTokenDuration,
-		RefreshTokenDuration: cfg.RefreshTokenDuration,
-		CookieDomain:         cfg.CookieDomain,
+		DB:              db,
+		Log:             logger,
+		JWTSecret:       cfg.JWTSecret,
+		SessionDuration: cfg.SessionDuration,
+		CookieDomain:    cfg.CookieDomain,
+		DefaultRedirect: cfg.DefaultRedirectURL,
+		Template:        template.Must(template.New("login").Parse(loginHTML)),
 	}
 
 	refreshHandler := &handler.RefreshHandler{
@@ -74,20 +80,22 @@ func main() {
 		Log:                  logger,
 		JWTSecret:            cfg.JWTSecret,
 		AccessTokenDuration:  cfg.AccessTokenDuration,
-		RefreshTokenDuration: cfg.RefreshTokenDuration,
+		RefreshTokenDuration: cfg.SessionDuration,
 		CookieDomain:         cfg.CookieDomain,
 	}
 
 	logoutHandler := &handler.LogoutHandler{
-		DB:           db,
 		Log:          logger,
 		CookieDomain: cfg.CookieDomain,
+		LoginURL:     cfg.LoginURL,
 	}
 
 	verifyHandler := &handler.VerifyHandler{
-		Log:       logger,
-		JWTSecret: cfg.JWTSecret,
-		LoginURL:  cfg.LoginURL,
+		Log:             logger,
+		JWTSecret:       cfg.JWTSecret,
+		LoginURL:        cfg.LoginURL,
+		CookieDomain:    cfg.CookieDomain,
+		SessionDuration: cfg.SessionDuration,
 	}
 
 	r := chi.NewRouter()
@@ -102,7 +110,8 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
 	})
-	r.With(httprate.LimitByIP(5, time.Minute)).Post("/login", loginHandler.ServeHTTP)
+	r.Get("/login", loginHandler.Show)
+	r.With(httprate.LimitByIP(5, time.Minute)).Post("/login", loginHandler.Submit)
 	r.Post("/refresh", refreshHandler.ServeHTTP)
 	r.Post("/logout", logoutHandler.ServeHTTP)
 	r.Get("/verify", verifyHandler.ServeHTTP)
