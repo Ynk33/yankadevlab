@@ -248,6 +248,7 @@ const monthName=()=>T().months[MONTH-1];
 const DEFAULT={tab:"all",lang:"fr",decks:{},mine:{},done:{},favs:{},dislikes:{},bought:{},extras:[],prefs:{persons:2,exclusions:"",envies:""}};
 const S={st:clone(DEFAULT),view:"discover",query:"",sheet:null,sheetPersons:null,loaded:false,gen:false,genMsg:"",genErr:"",auth:null,authErr:"",invite:null,team:[],lang:"fr",refreshing:false};
 
+const httpError=(path,status)=>Object.assign(new Error(path+" "+status),{status});
 function isObj(o){return !!o&&typeof o==="object"&&!Array.isArray(o)}
 function mergeDiff(a,b){
   if(!isObj(a)||!isObj(b))return JSON.stringify(a)===JSON.stringify(b)?undefined:b;
