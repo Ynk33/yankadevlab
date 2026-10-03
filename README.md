@@ -116,6 +116,10 @@ A personal micro-services suite — self-hosted tools for everyday life.
                    └──────────────────────────────┘
 ```
 
+## Standalone Apps
+
+- [x] **Assiette** — Recipes & shopping list (single-file app + Go/Postgres persistence, shares Traefik dashboard basic auth) at assiette.yankadevlab.tech
+
 ## Future Ideas (backlog)
 
 - URL shortener

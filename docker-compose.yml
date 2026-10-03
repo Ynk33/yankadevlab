@@ -153,6 +153,30 @@ services:
       - "traefik.http.middlewares.monitoring-cors.headers.accessControlMaxAge=300"
 
   # ============================================
+  # Assiette (recipes & shopping list)
+  # ============================================
+  assiette:
+    build:
+      context: ./services/assiette
+    container_name: assiette
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - traefik-public
+      - internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.assiette.rule=Host(`assiette.yankadevlab.tech`)"
+      - "traefik.http.routers.assiette.entrypoints=websecure"
+      - "traefik.http.routers.assiette.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.assiette.middlewares=traefik-auth"
+      - "traefik.http.services.assiette.loadbalancer.server.port=8080"
+
+  # ============================================
   # Personal CV Website
   # ============================================
   cv-site:
