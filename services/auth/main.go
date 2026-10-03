@@ -20,6 +20,15 @@ import (
 	"github.com/Ynk33/yankadevlab/services/auth/handler"
 )
 
+// keyByTraefikRealIP keys rate limits on the client IP. Traefik overwrites X-Real-Ip for untrusted
+// clients, so it can't be spoofed as long as the service is only reachable through Traefik.
+func keyByTraefikRealIP(r *http.Request) (string, error) {
+	if ip := r.Header.Get("X-Real-Ip"); ip != "" {
+		return ip, nil
+	}
+	return httprate.KeyByIP(r)
+}
+
 //go:embed web/login.html
 var loginHTML string
 
@@ -111,7 +120,7 @@ func main() {
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 	r.Get("/login", loginHandler.Show)
-	r.With(httprate.LimitByIP(5, time.Minute)).Post("/login", loginHandler.Submit)
+	r.With(httprate.Limit(5, time.Minute, httprate.WithKeyFuncs(keyByTraefikRealIP))).Post("/login", loginHandler.Submit)
 	r.Post("/refresh", refreshHandler.ServeHTTP)
 	r.Post("/logout", logoutHandler.ServeHTTP)
 	r.Get("/verify", verifyHandler.ServeHTTP)
