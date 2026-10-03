@@ -119,6 +119,8 @@ A personal micro-services suite — self-hosted tools for everyday life.
 ## Standalone Apps
 
 - [x] **Assiette** — Recipes & shopping list (single-file app + Go/Postgres persistence) at assiette.yankadevlab.tech
+  - [x] Own user accounts (separate from the auth service, no SSO), first account created with `docker compose exec assiette /seed <email> <password>`
+  - [x] Teams sharing recipes, shopping list and settings; invite-only signup (7-day single-use links); per-user language
 
 ## Access
 
@@ -131,7 +133,7 @@ Private services redirect to the login page served by the auth service; the resu
 | auth       | auth.yankadevlab.tech         | Public (login page)        |
 | dashboard  | dashboard.yankadevlab.tech    | Private (SSO)              |
 | monitoring | monitoring.yankadevlab.tech   | Private (SSO)              |
-| assiette   | assiette.yankadevlab.tech     | Public                     |
+| assiette   | assiette.yankadevlab.tech     | Own accounts (no SSO)      |
 | cv-site    | yannicktirand.xyz             | Public                     |
 | traefik    | traefik.yankadevlab.tech      | Basic auth                 |
 
