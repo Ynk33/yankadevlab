@@ -289,7 +289,8 @@ const Store={
     else{let cur=[];try{cur=JSON.parse(localStorage.getItem("assiette2:custom")||"[]")}catch(e){}try{localStorage.setItem("assiette2:custom",JSON.stringify(cur.concat(data)))}catch(e){}}})}
 };
 let saveT=null;
-function save(now){clearTimeout(saveT);saveT=null;if(now)return Store.saveState(S.st);saveT=setTimeout(()=>{saveT=null;Store.saveState(S.st)},500)}
+let edits=0;
+function save(now){edits++;clearTimeout(saveT);saveT=null;if(now)return Store.saveState(S.st);saveT=setTimeout(()=>{saveT=null;Store.saveState(S.st).then(autoRefresh)},500)}
 
 /* ---------- helpers ---------- */
 let toastT;
@@ -671,10 +672,17 @@ function applyState(st){
 document.addEventListener("visibilitychange",async()=>{
   if(Store.mode!=="api"||!S.loaded)return;
   if(document.hidden){if(saveT)save(true);return}
-  if(!saveT)reload(false);
+  autoRefresh();
 });
+const AUTO_REFRESH_MS=10000;
+let lastLoad=0;
+function autoRefresh(){if(Store.mode==="api"&&S.loaded&&!saveT&&Date.now()-lastLoad>=AUTO_REFRESH_MS)reload(false)}
+document.addEventListener("click",autoRefresh);
+document.addEventListener("keydown",autoRefresh);
+const isEditing=()=>!!document.activeElement&&document.activeElement.matches("input:not([type=checkbox]),textarea,select");
 async function loadRemote(){
   const api=Store.mode==="api";
+  lastLoad=Date.now();
   const [st,custom,team,me]=await Promise.all([Store.getState(),Store.listCustom(),api?Store.api("/api/team"):null,api?Store.api("/api/me"):null]);
   (custom||[]).forEach(r=>{if(r&&r.id&&Array.isArray(r.ingredients))registerCustom(r)});
   if(team)S.team=team.members||[];
@@ -687,12 +695,13 @@ async function reload(manual){
   try{
     if(saveT)save(true);
     await Store.q;
+    const e0=edits;
     const st=await loadRemote();
-    if(saveT)return;
+    if(saveT||edits!==e0)return;
     applyState(st);ensureDeck();
     if(manual)toast(tx("refreshed"));
   }catch(e){console.error(e);if(manual&&!S.auth)toast(tx("loadFail"))}
-  finally{S.refreshing=false;render()}
+  finally{S.refreshing=false;if(manual||!isEditing())render()}
 }
 async function boot(){
   await Store.init();
