@@ -1,5 +1,5 @@
-import { type FormEvent, useState } from "react";
-import { Navigate } from "react-router";
+import { type FormEvent, useEffect, useState } from "react";
+import { Navigate, useSearchParams } from "react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,14 +12,48 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+/**
+ * Returns `rd` only if it targets an https sibling subdomain of the current host (open-redirect guard).
+ */
+function getRedirectTarget(rd: string | null): string | undefined {
+  const { hostname } = window.location;
+  const dot = hostname.indexOf(".");
+  if (!rd || dot === -1) return undefined;
+
+  try {
+    const url = new URL(rd);
+    if (
+      url.protocol === "https:" &&
+      url.hostname.endsWith(hostname.slice(dot))
+    ) {
+      return url.href;
+    }
+  } catch {
+    return undefined;
+  }
+  return undefined;
+}
+
 export default function LoginPage() {
-  const { isAuthenticated, login } = useAuth();
+  const { isAuthenticated, login, logout, refreshAccessToken } = useAuth();
+  const [searchParams] = useSearchParams();
+  const redirectTarget = getRedirectTarget(searchParams.get("rd"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  if (isAuthenticated) return <Navigate to="/" replace />;
+  useEffect(() => {
+    if (!isAuthenticated || !redirectTarget) return;
+    refreshAccessToken().then((token) => {
+      if (token) window.location.assign(redirectTarget);
+      else logout();
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (isAuthenticated) {
+    return redirectTarget ? null : <Navigate to="/" replace />;
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -28,6 +62,7 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
+      if (redirectTarget) window.location.assign(redirectTarget);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
@@ -66,9 +101,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-            {error && (
-              <p className="text-sm text-destructive">{error}</p>
-            )}
+            {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Signing in..." : "Sign in"}
             </Button>

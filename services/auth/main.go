@@ -66,6 +66,7 @@ func main() {
 		JWTSecret:            cfg.JWTSecret,
 		AccessTokenDuration:  cfg.AccessTokenDuration,
 		RefreshTokenDuration: cfg.RefreshTokenDuration,
+		CookieDomain:         cfg.CookieDomain,
 	}
 
 	refreshHandler := &handler.RefreshHandler{
@@ -74,16 +75,19 @@ func main() {
 		JWTSecret:            cfg.JWTSecret,
 		AccessTokenDuration:  cfg.AccessTokenDuration,
 		RefreshTokenDuration: cfg.RefreshTokenDuration,
+		CookieDomain:         cfg.CookieDomain,
 	}
 
 	logoutHandler := &handler.LogoutHandler{
-		DB:  db,
-		Log: logger,
+		DB:           db,
+		Log:          logger,
+		CookieDomain: cfg.CookieDomain,
 	}
 
 	verifyHandler := &handler.VerifyHandler{
 		Log:       logger,
 		JWTSecret: cfg.JWTSecret,
+		LoginURL:  cfg.LoginURL,
 	}
 
 	r := chi.NewRouter()

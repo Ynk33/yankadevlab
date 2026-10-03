@@ -5,6 +5,7 @@ export interface AuthContextValue {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshAccessToken: () => Promise<string | undefined>;
   authFetch: (
     input: RequestInfo | URL,
     init?: RequestInit,

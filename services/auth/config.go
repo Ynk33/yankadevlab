@@ -12,6 +12,8 @@ type Config struct {
 	AccessTokenDuration  time.Duration
 	RefreshTokenDuration time.Duration
 	ServerPort           string
+	CookieDomain         string
+	LoginURL             string
 }
 
 func LoadConfig() (*Config, error) {
@@ -23,6 +25,16 @@ func LoadConfig() (*Config, error) {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		return nil, fmt.Errorf("JWT_SECRET is required")
+	}
+
+	cookieDomain := os.Getenv("COOKIE_DOMAIN")
+	if cookieDomain == "" {
+		return nil, fmt.Errorf("COOKIE_DOMAIN is required")
+	}
+
+	loginURL := os.Getenv("LOGIN_URL")
+	if loginURL == "" {
+		return nil, fmt.Errorf("LOGIN_URL is required")
 	}
 
 	accessDuration := 15 * time.Minute
@@ -39,5 +51,7 @@ func LoadConfig() (*Config, error) {
 		AccessTokenDuration:  accessDuration,
 		RefreshTokenDuration: refreshDuration,
 		ServerPort:           port,
+		CookieDomain:         cookieDomain,
+		LoginURL:             loginURL,
 	}, nil
 }

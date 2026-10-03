@@ -59,6 +59,8 @@ services:
     environment:
       - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
       - JWT_SECRET=${JWT_SECRET}
+      - COOKIE_DOMAIN=.yankadevlab.tech
+      - LOGIN_URL=https://dashboard.yankadevlab.tech/login
     depends_on:
       postgres:
         condition: service_healthy
@@ -173,7 +175,7 @@ services:
       - "traefik.http.routers.assiette.rule=Host(`assiette.yankadevlab.tech`)"
       - "traefik.http.routers.assiette.entrypoints=websecure"
       - "traefik.http.routers.assiette.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.assiette.middlewares=traefik-auth"
+      - "traefik.http.routers.assiette.middlewares=auth-verify"
       - "traefik.http.services.assiette.loadbalancer.server.port=8080"
 
   # ============================================

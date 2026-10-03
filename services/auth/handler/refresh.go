@@ -16,6 +16,7 @@ type RefreshHandler struct {
 	JWTSecret            string
 	AccessTokenDuration  time.Duration
 	RefreshTokenDuration time.Duration
+	CookieDomain         string
 }
 
 func (h *RefreshHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -109,7 +110,14 @@ func (h *RefreshHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Expires:  expiresAt,
 	})
 
-	// 9. Return access token in response body
+	// 9. Set session cookie shared across subdomains
+	if err := setSessionCookie(w, userID, email, h.JWTSecret, h.CookieDomain, h.RefreshTokenDuration); err != nil {
+		h.Log.Error("failed to generate session token", "error", err, "user_id", userID)
+		http.Error(w, `{"error":"internal error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	// 10. Return access token in response body
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(LoginResponse{AccessToken: accessToken})
 

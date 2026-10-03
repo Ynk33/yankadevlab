@@ -10,12 +10,16 @@ import (
 )
 
 type LogoutHandler struct {
-	DB  *sql.DB
-	Log *slog.Logger
+	DB           *sql.DB
+	Log          *slog.Logger
+	CookieDomain string
 }
 
 func (h *LogoutHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// 1. Read the refresh_token cookie
+	// 1. Clear the session cookie, even without a refresh token
+	clearSessionCookie(w, h.CookieDomain)
+
+	// 2. Read the refresh_token cookie
 	cookie, err := r.Cookie("refresh_token")
 	if err != nil {
 		h.Log.Info("missing refresh token", "error", err)
@@ -23,17 +27,17 @@ func (h *LogoutHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2. Hash the token
+	// 3. Hash the token
 	hash := token.HashToken(cookie.Value)
 
-	// 3. Revoke the token
+	// 4. Revoke the token
 	if _, err := h.DB.ExecContext(r.Context(),
 		`UPDATE refresh_tokens SET revoked_at = now() WHERE token_hash = $1`, hash,
 	); err != nil {
 		h.Log.Error("db query failed", "error", err)
 	}
 
-	// 4. Delete the cookie
+	// 5. Delete the refresh_token cookie
 	http.SetCookie(w, &http.Cookie{
 		Name:     "refresh_token",
 		Path:     "/", // scoped to /refresh later if needed

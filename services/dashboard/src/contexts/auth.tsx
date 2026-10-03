@@ -105,9 +105,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated,
       login: exposedLogin,
       logout,
+      refreshAccessToken,
       authFetch,
     }),
-    [accessToken, isAuthenticated, exposedLogin, logout, authFetch],
+    [
+      accessToken,
+      isAuthenticated,
+      exposedLogin,
+      logout,
+      refreshAccessToken,
+      authFetch,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
