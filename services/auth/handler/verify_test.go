@@ -40,16 +40,12 @@ func TestVerifyHandler(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		header       string
 		cookie       string
 		accept       string
 		wantStatus   int
 		wantLocation string
 		wantUserID   string
 	}{
-		{name: "valid bearer", header: "Bearer " + valid, wantStatus: http.StatusOK, wantUserID: "user-1"},
-		{name: "invalid bearer", header: "Bearer " + forged, accept: "text/html", wantStatus: http.StatusUnauthorized},
-		{name: "malformed header", header: "Basic abc", wantStatus: http.StatusUnauthorized},
 		{name: "valid cookie", cookie: valid, wantStatus: http.StatusOK, wantUserID: "user-1"},
 		{name: "expired cookie api", cookie: expired, accept: "application/json", wantStatus: http.StatusUnauthorized},
 		{name: "forged cookie api", cookie: forged, wantStatus: http.StatusUnauthorized},
@@ -77,9 +73,6 @@ func TestVerifyHandler(t *testing.T) {
 			req.Header.Set("X-Forwarded-Proto", "https")
 			req.Header.Set("X-Forwarded-Host", "app.example.tech")
 			req.Header.Set("X-Forwarded-Uri", "/path?q=1")
-			if tt.header != "" {
-				req.Header.Set("Authorization", tt.header)
-			}
 			if tt.cookie != "" {
 				req.AddCookie(&http.Cookie{Name: sessionCookieName, Value: tt.cookie})
 			}

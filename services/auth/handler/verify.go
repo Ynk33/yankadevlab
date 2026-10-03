@@ -21,24 +21,6 @@ type VerifyHandler struct {
 }
 
 func (h *VerifyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if authHeader := r.Header.Get("Authorization"); authHeader != "" {
-		rawToken, ok := strings.CutPrefix(authHeader, "Bearer ")
-		if !ok || rawToken == "" {
-			h.Log.Warn("malformed auth header")
-			http.Error(w, `{"error":"malformed auth header"}`, http.StatusUnauthorized)
-			return
-		}
-
-		claims, err := token.ParseAccessToken(rawToken, h.JWTSecret)
-		if err != nil {
-			h.Log.Warn("invalid access token", "error", err)
-			http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
-			return
-		}
-		h.allow(w, claims)
-		return
-	}
-
 	if cookie, err := r.Cookie(sessionCookieName); err == nil {
 		claims, err := token.ParseAccessToken(cookie.Value, h.JWTSecret)
 		if err == nil {
