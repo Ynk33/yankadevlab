@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 
 const API_BASE = import.meta.env.VITE_MONITORING_API_URL ?? "";
+/** Polling period, aligned with the Prometheus scrape interval. */
+const REFRESH_INTERVAL_MS = 5_000;
 
 export function useMetric<T>(path: string) {
   const [data, setData] = useState<T | undefined>(undefined);
@@ -15,7 +17,10 @@ export function useMetric<T>(path: string) {
           if (!res.ok) throw new Error(`Request failed (${res.status})`);
           return res.json();
         })
-        .then((json: T) => setData(json))
+        .then((json: T) => {
+          setData(json);
+          setError(undefined);
+        })
         .catch((err) =>
           setError(
             err instanceof Error ? err.message : "Failed to load metric",
@@ -27,6 +32,8 @@ export function useMetric<T>(path: string) {
 
   useEffect(() => {
     load();
+    const id = setInterval(load, REFRESH_INTERVAL_MS);
+    return () => clearInterval(id);
   }, [load]);
 
   const refetch = useCallback(() => {

@@ -10,7 +10,7 @@ export default function HomePage() {
         <ScalarMetricCard
           icon={CpuIcon}
           title="CPU usage"
-          description="Server-wide, 5 min average"
+          description="Server-wide, live"
           path="/metrics/cpu"
         />
         <ScalarMetricCard
