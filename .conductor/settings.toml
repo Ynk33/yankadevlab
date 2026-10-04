@@ -9,9 +9,10 @@ available_in = [ "local" ]
 default = true
 icon = "chef-hat"
 command = '''
-PG=yankadevlab-pg-$CONDUCTOR_WORKSPACE_NAME
+WS=$(basename "$CONDUCTOR_WORKSPACE_PATH")
+PG=yankadevlab-pg-$WS
 PG_PORT=$((CONDUCTOR_PORT + 1))
-BIN=$TMPDIR/assiette-$CONDUCTOR_WORKSPACE_NAME
+BIN=$TMPDIR/assiette-$WS
 docker rm -f $PG >/dev/null 2>&1
 docker run -d --rm --name $PG -v $PG-data:/var/lib/postgresql/data -e POSTGRES_USER=dev -e POSTGRES_PASSWORD=dev -e POSTGRES_DB=dev -p $PG_PORT:5432 postgres:16-alpine >/dev/null || exit 1
 trap "docker stop $PG >/dev/null 2>&1" EXIT INT TERM
