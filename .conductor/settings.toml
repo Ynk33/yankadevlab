@@ -1,7 +1,7 @@
 "$schema" = "https://conductor.build/schemas/settings.repo.schema.json"
 
 [scripts]
-setup = "npm --prefix services/dashboard ci"
+setup = "npm --prefix services/dashboard ci && npm --prefix services/assiette/web ci"
 run_mode = "concurrent"
 
 [scripts.run.assiette]
@@ -12,6 +12,7 @@ command = '''
 WS=$(basename "$CONDUCTOR_WORKSPACE_PATH")
 PG=yankadevlab-pg-$WS
 PG_PORT=$((CONDUCTOR_PORT + 1))
+API_PORT=$((CONDUCTOR_PORT + 3))
 BIN=$TMPDIR/assiette-$WS
 docker rm -f $PG >/dev/null 2>&1
 docker run -d --rm --name $PG -v $PG-data:/var/lib/postgresql/data -e POSTGRES_USER=dev -e POSTGRES_PASSWORD=dev -e POSTGRES_DB=dev -p $PG_PORT:5432 postgres:16-alpine >/dev/null || exit 1
@@ -19,11 +20,10 @@ trap "docker stop $PG >/dev/null 2>&1" EXIT INT TERM
 until docker exec $PG pg_isready -U dev >/dev/null 2>&1; do sleep 1; done
 export DATABASE_URL="postgres://dev:dev@localhost:$PG_PORT/dev?sslmode=disable"
 cd services/assiette && go build -o $BIN . || exit 1
-echo "Assiette → http://localhost:$CONDUCTOR_PORT"
-SERVER_PORT=$CONDUCTOR_PORT $BIN &
-until curl -sf localhost:$CONDUCTOR_PORT/health >/dev/null; do kill -0 $! 2>/dev/null || exit 1; sleep 1; done
+SERVER_PORT=$API_PORT $BIN &
+until curl -sf localhost:$API_PORT/health >/dev/null; do kill -0 $! 2>/dev/null || exit 1; sleep 1; done
 go run ./cmd/seed dev@local.test devpassword >/dev/null 2>&1 && echo "Seeded dev@local.test / devpassword" || echo "Dev user: dev@local.test / devpassword"
-wait
+ASSIETTE_API_URL=http://localhost:$API_PORT npm --prefix web run dev -- --port $CONDUCTOR_PORT --strictPort
 '''
 
 [scripts.run.dashboard]

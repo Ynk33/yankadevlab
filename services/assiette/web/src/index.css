@@ -1,0 +1,105 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource/young-serif";
+@import "@fontsource/instrument-sans/400.css";
+@import "@fontsource/instrument-sans/500.css";
+@import "@fontsource/instrument-sans/600.css";
+
+@theme inline {
+    --font-heading: "Young Serif", Georgia, "Times New Roman", serif;
+    --font-sans: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --color-fav: var(--fav);
+    --color-fish: #2E6E8E;
+    --color-poultry: #D0952A;
+    --color-meat: #8E2A4A;
+    --color-veg: #5D8B47;
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+}
+
+:root {
+    --radius: 0.625rem;
+    --background: #EEF2EA;
+    --foreground: #17241C;
+    --card: #FFFFFF;
+    --card-foreground: #17241C;
+    --popover: #FFFFFF;
+    --popover-foreground: #17241C;
+    --primary: #1E4D36;
+    --primary-foreground: #FFFFFF;
+    --secondary: #E3EADF;
+    --secondary-foreground: #17241C;
+    --muted: #E3EADF;
+    --muted-foreground: #5B6B60;
+    --accent: #E3EADF;
+    --accent-foreground: #17241C;
+    --destructive: #8E2A4A;
+    --border: #D3DCD0;
+    --input: #D3DCD0;
+    --ring: #1E4D36;
+    --fav: #C2304F;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --background: #0F1612;
+        --foreground: #E4ECE6;
+        --card: #18211B;
+        --card-foreground: #E4ECE6;
+        --popover: #18211B;
+        --popover-foreground: #E4ECE6;
+        --primary: #86C9A0;
+        --primary-foreground: #0E1F15;
+        --secondary: #1E2922;
+        --secondary-foreground: #E4ECE6;
+        --muted: #1E2922;
+        --muted-foreground: #9AAA9F;
+        --accent: #1E2922;
+        --accent-foreground: #E4ECE6;
+        --destructive: #E58AA6;
+        --border: #2A372F;
+        --input: #2A372F;
+        --ring: #86C9A0;
+        --fav: #F07A93;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border outline-ring/50;
+    }
+    html {
+        @apply font-sans;
+        scroll-padding-top: env(safe-area-inset-top, 0px);
+    }
+    body {
+        @apply bg-background text-foreground antialiased;
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    h1, h2, h3 {
+        @apply font-heading font-normal leading-tight;
+    }
+}

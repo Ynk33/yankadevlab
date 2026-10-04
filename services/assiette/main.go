@@ -1,14 +1,12 @@
 package main
 
 import (
-	"crypto/sha256"
 	"database/sql"
-	_ "embed"
-	"encoding/base64"
+	"embed"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
@@ -20,26 +18,35 @@ import (
 	_ "github.com/lib/pq"
 )
 
-//go:embed web/index.html
-var indexHTML []byte
+//go:embed all:web/dist
+var webDist embed.FS
 
-//go:embed web/logo.svg
-var logoSVG []byte
+const csp = "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:" +
+	"; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 
-var inlineScriptRe = regexp.MustCompile(`(?s)<script>(.*?)</script>`)
-
-// indexCSP allows only the inline scripts embedded in index.html, identified by their hash.
-var indexCSP = buildCSP(indexHTML)
-
-func buildCSP(html []byte) string {
-	var hashes []string
-	for _, m := range inlineScriptRe.FindAllSubmatch(html, -1) {
-		sum := sha256.Sum256(m[1])
-		hashes = append(hashes, "'sha256-"+base64.StdEncoding.EncodeToString(sum[:])+"'")
+// staticHandler serves the Vite build. Hashed files under /assets/ are cached forever, the rest is revalidated.
+func staticHandler() http.Handler {
+	dist, err := fs.Sub(webDist, "web/dist")
+	if err != nil {
+		panic(err)
 	}
-	return "default-src 'self'; script-src " + strings.Join(hashes, " ") +
-		"; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com" +
-		"; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+	files := http.FileServerFS(dist)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" && strings.HasSuffix(r.URL.Path, "/") {
+			http.NotFound(w, r)
+			return
+		}
+		h := w.Header()
+		h.Set("Content-Security-Policy", csp)
+		h.Set("X-Content-Type-Options", "nosniff")
+		h.Set("Referrer-Policy", "same-origin")
+		if strings.HasPrefix(r.URL.Path, "/assets/") {
+			h.Set("Cache-Control", "public, max-age=31536000, immutable")
+		} else {
+			h.Set("Cache-Control", "no-cache")
+		}
+		files.ServeHTTP(w, r)
+	})
 }
 
 // keyByTraefikRealIP keys rate limits on the client IP. Traefik overwrites X-Real-Ip for untrusted
@@ -98,19 +105,7 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
 	})
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Header().Set("Content-Security-Policy", indexCSP)
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("Referrer-Policy", "same-origin")
-		w.Write(indexHTML)
-	})
-	r.Get("/logo.svg", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "image/svg+xml")
-		w.Header().Set("Cache-Control", "public, max-age=86400")
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Write(logoSVG)
-	})
+	r.Handle("/*", staticHandler())
 	r.With(httprate.Limit(5, time.Minute, httprate.WithKeyFuncs(keyByTraefikRealIP))).Post("/login", store.Login)
 	r.With(httprate.Limit(5, time.Minute, httprate.WithKeyFuncs(keyByTraefikRealIP))).Post("/signup", store.Signup)
 	r.Post("/logout", store.Logout)
