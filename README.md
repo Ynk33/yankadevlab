@@ -67,11 +67,11 @@ A personal micro-services suite — self-hosted tools for everyday life.
   - [x] Dark mode toggle
   - [x] 404 page
   - [ ] Links to the other services (single entry point)
-- [ ] **Server monitoring** — System metrics (CPU, RAM, disk, network) with history
+- [x] **Server monitoring** — System metrics (CPU, RAM, disk, network) with history
   - [x] Prometheus + node-exporter (5 s scrape, 15-day retention)
-  - [x] Monitoring API (Go) exposing live CPU, RAM, disk and network metrics, behind SSO
+  - [x] Monitoring API (Go) exposing live and historical CPU, RAM, disk and network metrics, behind SSO
   - [x] Live metric cards on the dashboard (5 s polling)
-  - [ ] History (charts over time)
+  - [x] History (charts over time, 1h / 24h / 7d)
 - [ ] **Homemade analytics** — Lightweight visit tracking for the public-facing site (simplified Plausible/Umami)
 
 ### Phase 2 — Subscription Tracker

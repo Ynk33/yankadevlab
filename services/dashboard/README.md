@@ -10,19 +10,19 @@ Web UI for YankaDevLab, currently showing live server metrics. Private, behind S
 
 ## Routes
 
-| Path | Description                                                   |
-| ---- | ------------------------------------------------------------- |
-| `/`  | Home: CPU, RAM, disk and network cards, polled every 5 s      |
-| `*`  | 404 page (nginx falls back to `index.html` for client routes) |
+| Path | Description                                                                                  |
+| ---- | -------------------------------------------------------------------------------------------- |
+| `/`  | Home: CPU, RAM, disk and network cards, polled every 5 s, and history charts (1h / 24h / 7d) |
+| `*`  | 404 page (nginx falls back to `index.html` for client routes)                                |
 
 ## Configuration
 
 Build-time variables, passed as Docker build args in `docker-compose.yml`.
 
-| Variable                  | Required   | Default | Description                                    |
-| ------------------------- | ---------- | ------- | ---------------------------------------------- |
-| `VITE_AUTH_API_URL`       | Yes (prod) | `""`    | Auth service base URL, used by the logout form |
-| `VITE_MONITORING_API_URL` | Yes (prod) | `""`    | Monitoring API base URL for the metric cards   |
+| Variable                  | Required   | Default | Description                                             |
+| ------------------------- | ---------- | ------- | ------------------------------------------------------- |
+| `VITE_AUTH_API_URL`       | Yes (prod) | `""`    | Auth service base URL, used by the logout form          |
+| `VITE_MONITORING_API_URL` | Yes (prod) | `""`    | Monitoring API base URL for the metric cards and charts |
 
 ## Development
 
@@ -33,8 +33,8 @@ npm ci
 npm run dev
 ```
 
-The SPA has no auth code, so it runs without the auth service. Metric cards need the monitoring API and fail without it,
-and logout is broken locally: with an empty `VITE_AUTH_API_URL` the form posts to the Vite dev server.
+The SPA has no auth code, so it runs without the auth service. Metric cards and charts need the monitoring API and fail
+without it, and logout is broken locally: with an empty `VITE_AUTH_API_URL` the form posts to the Vite dev server.
 
 In production, a 401 from the monitoring API (expired session) reloads the page so that Traefik redirects to the login
 page.

@@ -63,13 +63,17 @@ func parseScalar(body []byte) (float64, int64, error) {
 		return 0, 0, fmt.Errorf("empty result")
 	}
 
+	return parseSample(res.Data.Result[0].Value)
+}
+
+func parseSample(sample [2]json.RawMessage) (float64, int64, error) {
 	var ts float64
-	if err := json.Unmarshal(res.Data.Result[0].Value[0], &ts); err != nil {
+	if err := json.Unmarshal(sample[0], &ts); err != nil {
 		return 0, 0, fmt.Errorf("decode timestamp: %w", err)
 	}
 
 	var valueStr string
-	if err := json.Unmarshal(res.Data.Result[0].Value[1], &valueStr); err != nil {
+	if err := json.Unmarshal(sample[1], &valueStr); err != nil {
 		return 0, 0, fmt.Errorf("decode value: %w", err)
 	}
 	value, err := strconv.ParseFloat(valueStr, 64)

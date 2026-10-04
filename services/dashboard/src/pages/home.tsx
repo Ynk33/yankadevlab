@@ -1,6 +1,7 @@
 import { CpuIcon, HardDriveIcon, MemoryStickIcon } from "lucide-react";
 import { ScalarMetricCard } from "@/components/monitoring/scalar-metric-card";
 import { NetworkCard } from "@/components/monitoring/network-card";
+import { HistorySection } from "@/components/monitoring/history-section";
 
 export default function HomePage() {
   return (
@@ -27,6 +28,7 @@ export default function HomePage() {
         />
         <NetworkCard />
       </div>
+      <HistorySection />
     </div>
   );
 }
