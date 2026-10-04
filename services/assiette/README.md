@@ -5,8 +5,8 @@ Recipes and shopping list app, shared within a team. Own user accounts (no SSO),
 ## Stack
 
 - Go + chi, PostgreSQL (`assiette` schema, migrations run on startup)
-- Single-file frontend (`web/index.html`), embedded in the binary. It also runs as a Claude artifact, with its own
-  storage and an "add recipes with Claude" feature; served by this service it always uses the API and hides that feature
+- Frontend in `web/`: React 19 + TypeScript, Vite, Tailwind CSS v4 + shadcn/ui (Base UI). The Vite build
+  (`web/dist`) is embedded in the binary
 - Session cookie (`assiette_session`, 30 days, renewed when less than 15 days are left)
 
 ## Routes
@@ -14,15 +14,14 @@ Recipes and shopping list app, shared within a team. Own user accounts (no SSO),
 | Method | Path                         | Description                                                           |
 | ------ | ---------------------------- | --------------------------------------------------------------------- |
 | GET    | `/health`                    | Health check                                                          |
-| GET    | `/`                          | App (CSP: only its own inline script, by hash; Google Fonts allowed)  |
-| GET    | `/logo.svg`                  | Logo and favicon                                                      |
+| GET    | `/*`                         | Frontend build (CSP: same origin only, fonts self-hosted)             |
 | POST   | `/login`                     | Sign in (5 req/min per client IP)                                     |
 | POST   | `/signup`                    | Create an account from an invite (5 req/min per client IP)            |
 | POST   | `/logout`                    | Sign out                                                              |
 | GET    | `/api/state`                 | Team state (selected recipes, shopping list, favourites, preferences) |
 | PATCH  | `/api/state`                 | Apply a JSON merge patch to the team state                            |
 | GET    | `/api/custom`                | List the team's custom recipes                                        |
-| POST   | `/api/custom`                | Add custom recipes                                                    |
+| POST   | `/api/custom`                | Add custom recipes (not called by the current frontend)               |
 | GET    | `/api/recipes/{id}/comments` | List the team's comments on a recipe (oldest first)                   |
 | POST   | `/api/recipes/{id}/comments` | Add a comment (201)                                                   |
 | PUT    | `/api/comments/{cid}`        | Edit one of your own comments (404 otherwise)                         |
@@ -53,11 +52,16 @@ Recipes and shopping list app, shared within a team. Own user accounts (no SSO),
 ## Development
 
 Conductor run script `assiette`: starts a per-workspace PostgreSQL container, builds and runs the service on
-`$CONDUCTOR_PORT`, and seeds `dev@local.test` / `devpassword`.
+`$CONDUCTOR_PORT + 3`, seeds `dev@local.test` / `devpassword`, then starts the Vite dev server on `$CONDUCTOR_PORT`. Vite
+proxies `/api`, `/login`, `/signup` and `/logout` to the service (`ASSIETTE_API_URL`, default `http://localhost:8080`).
 
 ```bash
 go test ./...
+cd web && npm ci && npm run lint && npm test && npm run build
 ```
+
+`go build` works without a frontend build (`web/dist` only holds a `.gitkeep`), but the binary then serves no app.
+Static files under `/assets/` are cached for a year (hashed names); the rest is revalidated on every request.
 
 ## Production
 

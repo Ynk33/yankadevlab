@@ -115,8 +115,8 @@ A personal micro-services suite — self-hosted tools for everyday life.
 ┌──────▼─────┐ ┌────▼──────┐ ┌──▼─────────┐ ┌─▼──────────┐      │
 │  cv-site   │ │ dashboard │ │ monitoring │ │  assiette  │      │
 │  (Hugo,    │ │ (React,   │ │   (Go)     │ │   (Go +    │      │
-│   nginx)   │ │  nginx)   │ │            │ │single-file │      │
-│            │ │           │ │            │ │ frontend)  │      │
+│   nginx)   │ │  nginx)   │ │            │ │   React)   │      │
+│            │ │           │ │            │ │            │      │
 └────────────┘ └───────────┘ └──────┬─────┘ └──────┬─────┘      │
                                     │              │            │
                              ┌──────▼─────┐ ┌──────▼────────────▼──┐
