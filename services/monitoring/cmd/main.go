@@ -39,6 +39,11 @@ func main() {
 		return h.ServeHTTP
 	}
 
+	history := func(name string, series map[string]string) http.HandlerFunc {
+		h := &handler.HistoryHandler{Name: name, Series: series, Prom: promClient, Log: logger}
+		return h.ServeHTTP
+	}
+
 	networkHandler := &handler.NetworkHandler{
 		RxQuery: netRxQuery,
 		TxQuery: netTxQuery,
@@ -55,6 +60,10 @@ func main() {
 	r.Get("/metrics/ram", scalar("ram", ramQuery))
 	r.Get("/metrics/disk", scalar("disk", diskQuery))
 	r.Get("/metrics/network", networkHandler.ServeHTTP)
+	r.Get("/metrics/cpu/history", history("cpu", map[string]string{"value": cpuQuery}))
+	r.Get("/metrics/ram/history", history("ram", map[string]string{"value": ramQuery}))
+	r.Get("/metrics/disk/history", history("disk", map[string]string{"value": diskQuery}))
+	r.Get("/metrics/network/history", history("network", map[string]string{"rx": netRxQuery, "tx": netTxQuery}))
 
 	logger.Info("monitoring service listening", "port", port)
 	if err := http.ListenAndServe(":"+port, r); err != nil {

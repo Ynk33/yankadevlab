@@ -28,10 +28,7 @@ func (c *Client) Query(ctx context.Context, query string) ([]byte, error) {
 	return c.get(ctx, "/api/v1/query", params)
 }
 
-func (c *Client) QueryRange(ctx context.Context, query string, duration time.Duration, step time.Duration) ([]byte, error) {
-	end := time.Now()
-	start := end.Add(-duration)
-
+func (c *Client) QueryRange(ctx context.Context, query string, start, end time.Time, step time.Duration) ([]byte, error) {
 	params := url.Values{}
 	params.Set("query", query)
 	params.Set("start", strconv.FormatInt(start.Unix(), 10))
