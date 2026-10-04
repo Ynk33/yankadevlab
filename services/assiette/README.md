@@ -11,31 +11,37 @@ Recipes and shopping list app, shared within a team. Own user accounts (no SSO),
 
 ## Routes
 
-| Method | Path                        | Description                                                           |
-| ------ | --------------------------- | --------------------------------------------------------------------- |
-| GET    | `/health`                   | Health check                                                          |
-| GET    | `/`                         | App (CSP: only its own inline script, by hash; Google Fonts allowed)  |
-| GET    | `/logo.svg`                 | Logo and favicon                                                      |
-| POST   | `/login`                    | Sign in (5 req/min per client IP)                                     |
-| POST   | `/signup`                   | Create an account from an invite (5 req/min per client IP)            |
-| POST   | `/logout`                   | Sign out                                                              |
-| GET    | `/api/state`                | Team state (selected recipes, shopping list, favourites, preferences) |
-| PATCH  | `/api/state`                | Apply a JSON merge patch to the team state                            |
-| GET    | `/api/custom`               | List the team's custom recipes                                        |
-| POST   | `/api/custom`               | Add custom recipes                                                    |
-| GET    | `/api/team`                 | List team members                                                     |
-| GET    | `/api/me`                   | Current user settings: `{ lang }` (`fr` or `en`)                      |
-| PUT    | `/api/me`                   | Update `lang`                                                         |
-| POST   | `/api/invites`              | Create a 7-day single-use invite                                      |
-| POST   | `/api/invites/{token}/join` | Move the current account to the invite's team                         |
+| Method | Path                         | Description                                                           |
+| ------ | ---------------------------- | --------------------------------------------------------------------- |
+| GET    | `/health`                    | Health check                                                          |
+| GET    | `/`                          | App (CSP: only its own inline script, by hash; Google Fonts allowed)  |
+| GET    | `/logo.svg`                  | Logo and favicon                                                      |
+| POST   | `/login`                     | Sign in (5 req/min per client IP)                                     |
+| POST   | `/signup`                    | Create an account from an invite (5 req/min per client IP)            |
+| POST   | `/logout`                    | Sign out                                                              |
+| GET    | `/api/state`                 | Team state (selected recipes, shopping list, favourites, preferences) |
+| PATCH  | `/api/state`                 | Apply a JSON merge patch to the team state                            |
+| GET    | `/api/custom`                | List the team's custom recipes                                        |
+| POST   | `/api/custom`                | Add custom recipes                                                    |
+| GET    | `/api/recipes/{id}/comments` | List the team's comments on a recipe (oldest first)                   |
+| POST   | `/api/recipes/{id}/comments` | Add a comment (201)                                                   |
+| PUT    | `/api/comments/{cid}`        | Edit one of your own comments (404 otherwise)                         |
+| DELETE | `/api/comments/{cid}`        | Delete one of your own comments (404 otherwise)                       |
+| GET    | `/api/team`                  | List team members                                                     |
+| GET    | `/api/me`                    | Current user settings: `{ lang }` (`fr` or `en`)                      |
+| PUT    | `/api/me`                    | Update `lang`                                                         |
+| POST   | `/api/invites`               | Create a 7-day single-use invite                                      |
+| POST   | `/api/invites/{token}/join`  | Move the current account to the invite's team                         |
 
 `/api/*` routes require a valid session.
 
 - **Invites** — the app shares them as `https://assiette.yankadevlab.tech/#invite=<token>`. An invalid, expired or
   already used invite returns 410.
 - **Passwords** — 8 to 72 bytes.
-- **Joining a team** — the account leaves its current team. If that team is left empty, it is deleted with its state and
-  custom recipes.
+- **Comments** — scoped to the team, 1 to 2000 characters. Each comment carries `author` (email) and `mine`; only the
+  author can edit or delete it.
+- **Joining a team** — the account leaves its current team. If that team is left empty, it is deleted with its state,
+  custom recipes and comments.
 
 ## Configuration
 
