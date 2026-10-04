@@ -2,3 +2,27 @@
 
 [scripts]
 setup = "npm --prefix services/dashboard ci"
+run_mode = "concurrent"
+
+[scripts.run.assiette]
+available_in = [ "local" ]
+default = true
+icon = "chef-hat"
+command = '''
+PG=yankadevlab-pg-$CONDUCTOR_WORKSPACE_NAME
+PG_PORT=$((CONDUCTOR_PORT + 1))
+BIN=$TMPDIR/assiette-$CONDUCTOR_WORKSPACE_NAME
+docker rm -f $PG >/dev/null 2>&1
+docker run -d --rm --name $PG -v $PG-data:/var/lib/postgresql/data -e POSTGRES_USER=dev -e POSTGRES_PASSWORD=dev -e POSTGRES_DB=dev -p $PG_PORT:5432 postgres:16-alpine >/dev/null || exit 1
+trap "docker stop $PG >/dev/null 2>&1" EXIT INT TERM
+until docker exec $PG pg_isready -U dev >/dev/null 2>&1; do sleep 1; done
+export DATABASE_URL="postgres://dev:dev@localhost:$PG_PORT/dev?sslmode=disable"
+cd services/assiette && go build -o $BIN . || exit 1
+echo "Assiette → http://localhost:$CONDUCTOR_PORT"
+SERVER_PORT=$CONDUCTOR_PORT $BIN
+'''
+
+[scripts.run.dashboard]
+available_in = [ "local" ]
+icon = "layout-dashboard"
+command = "npm --prefix services/dashboard run dev -- --port $((CONDUCTOR_PORT + 2)) --strictPort"
