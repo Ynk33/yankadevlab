@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Assiette</title>
+<link rel="icon" type="image/svg+xml" href="/logo.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -27,6 +28,7 @@ main{max-width:680px;margin:0 auto;padding:20px 16px calc(96px + env(safe-area-i
 h1,h2,h3{font-family:var(--serif);font-weight:400;margin:0;line-height:1.2}
 h1{font-size:2.1rem}h2{font-size:1.45rem}h3{font-size:1.15rem}
 .muted{color:var(--muted)}.small{font-size:.875rem}
+.logo{display:block;border-radius:16px;margin-bottom:12px}
 .top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:16px}
 .top p{margin:2px 0 0}
 .btn{border:0;border-radius:999px;padding:10px 17px;font-weight:600;background:var(--accent);color:var(--accent-ink);white-space:nowrap}
@@ -523,7 +525,7 @@ function teamHTML(){
 }
 function authView(){
   const signup=S.auth==="signup";
-  return `<header class="top"><div><h1>Assiette</h1><p class="muted">${esc(tx(signup?"signupSub":"loginSub"))}</p></div></header>
+  return `<header class="top"><div><img class="logo" src="/logo.svg" alt="" width="64" height="64"><h1>Assiette</h1><p class="muted">${esc(tx(signup?"signupSub":"loginSub"))}</p></div></header>
   <form class="prefs" data-form="auth">
     <label class="f">${esc(tx("email"))}<input type="email" name="email" required autocomplete="email"></label>
     <label class="f">${esc(tx("password"))}${signup?`<span>${esc(tx("passwordSub"))}</span>`:""}<input type="password" name="password" required ${signup?'minlength="8" autocomplete="new-password"':'autocomplete="current-password"'}></label>
