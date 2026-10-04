@@ -151,7 +151,11 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const slug=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,80);
 const clone=o=>JSON.parse(JSON.stringify(o));
-const PROT={"poisson":"#2E6E8E","fruits de mer":"#3F948D","légumineuses":"#9A7432","volaille":"#D0952A","viande rouge":"#8E2A4A","porc":"#C76B6B","œufs":"#E0B020","tofu/tempeh":"#5D8B47","fromage":"#A89140"};
+const PROT={"poisson":"fish","fruits de mer":"fish","volaille":"poultry","viande rouge":"meat","porc":"meat","légumineuses":"veg","œufs":"veg","tofu/tempeh":"veg","fromage":"veg"};
+const CAT_COLOR={fish:"#2E6E8E",poultry:"#D0952A",meat:"#8E2A4A",veg:"#5D8B47"};
+const CAT_KEYS=["all","fish","poultry","meat","veg"];
+const inCat=(r,c)=>c==="all"||PROT[r.protein]===c;
+const deckKey=()=>S.st.tab+(S.st.cat==="all"?"":"|"+S.st.cat);
 const RAYONS=["Fruits & légumes","Boucherie & poisson","Crèmerie & œufs","Boulangerie","Épicerie","Surgelés","Herbes & épices"];
 const UNITS=["g","ml","pièce","botte","c. à s.","c. à c."];
 const DECK=12, DONE_COOLDOWN=21*864e5;
@@ -163,6 +167,7 @@ const I18N={
 fr:{
   nav:{discover:"Découvrir",mine:"Mes recettes",shop:"Courses",plus:"Plus"},
   tabs:{all:["Tout","Toutes les recettes"],quick:["Rapides","20 min maximum"],batch:["Batch","À cuisiner en avance, se garde 3 à 4 jours au frais"],dinner:["Dîners","Plus de 20 min, un peu plus élaborés"]},
+  cats:{all:"Toutes",fish:"Poisson",poultry:"Volaille",meat:"Viande",veg:"Végé"},
   prot:{"poisson":"poisson","fruits de mer":"fruits de mer","légumineuses":"légumineuses","volaille":"volaille","viande rouge":"viande rouge","porc":"porc","œufs":"œufs","tofu/tempeh":"tofu/tempeh","fromage":"fromage"},
   rayon:{},unit:{"g":"g","ml":"ml","pièce":"","botte":["botte","bottes"],"c. à s.":"c. à s.","c. à c.":"c. à c."},
   months:["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"],
@@ -195,6 +200,7 @@ fr:{
 en:{
   nav:{discover:"Discover",mine:"My recipes",shop:"Shopping",plus:"More"},
   tabs:{all:["All","Every recipe"],quick:["Quick","20 min max"],batch:["Batch","Cook ahead, keeps 3–4 days in the fridge"],dinner:["Dinners","Over 20 min, a bit more involved"]},
+  cats:{all:"All",fish:"Fish",poultry:"Poultry",meat:"Meat",veg:"Veggie"},
   prot:{"poisson":"fish","fruits de mer":"seafood","légumineuses":"legumes","volaille":"poultry","viande rouge":"red meat","porc":"pork","œufs":"eggs","tofu/tempeh":"tofu/tempeh","fromage":"cheese"},
   rayon:{"Fruits & légumes":"Fruit & veg","Boucherie & poisson":"Meat & fish","Crèmerie & œufs":"Dairy & eggs","Boulangerie":"Bakery","Épicerie":"Groceries","Surgelés":"Frozen","Herbes & épices":"Herbs & spices"},
   unit:{"g":"g","ml":"ml","pièce":"","botte":["bunch","bunches"],"c. à s.":"tbsp","c. à c.":"tsp"},
@@ -248,7 +254,7 @@ const rayonName=r=>T().rayon[r]||r;
 const monthName=()=>T().months[MONTH-1];
 
 /* ---------- state ---------- */
-const DEFAULT={tab:"all",lang:"fr",decks:{},mine:{},done:{},favs:{},dislikes:{},bought:{},extras:{},prefs:{persons:2,exclusions:"",envies:""}};
+const DEFAULT={tab:"all",cat:"all",lang:"fr",decks:{},mine:{},done:{},favs:{},dislikes:{},bought:{},extras:{},prefs:{persons:2,exclusions:"",envies:""}};
 const S={st:clone(DEFAULT),view:"discover",query:"",sheet:null,sheetPersons:null,loaded:false,gen:false,genMsg:"",genErr:"",auth:null,authErr:"",invite:null,team:[],lang:"fr",refreshing:false};
 
 const httpError=(path,status)=>Object.assign(new Error(path+" "+status),{status});
@@ -330,14 +336,13 @@ function pickSpread(pool,n){
   return out;
 }
 function newDeck(){
-  const tab=S.st.tab;
-  const pool=Object.values(CATALOG).filter(r=>!inMine(r.id)&&eligible(r)&&inTab(r,tab));
+  const pool=Object.values(CATALOG).filter(r=>!inMine(r.id)&&eligible(r)&&inTab(r,S.st.tab)&&inCat(r,S.st.cat));
   const local=pickSpread(pool.filter(isLocal),DECK-2);
   const rest=pickSpread(pool.filter(r=>!isLocal(r)),DECK-local.length);
   const out=local.slice();rest.forEach(r=>out.splice(Math.floor(Math.random()*(out.length+1)),0,r));
-  S.st.decks[tab]=out.map(r=>r.id);save();
+  S.st.decks[deckKey()]=out.map(r=>r.id);save();
 }
-function ensureDeck(){if(!(S.st.decks[S.st.tab]||[]).some(id=>CATALOG[id]))newDeck()}
+function ensureDeck(){if(!(S.st.decks[deckKey()]||[]).some(id=>CATALOG[id]))newDeck()}
 
 /* ---------- actions ---------- */
 function addMine(id,persons){S.st.mine[id]={persons:persons||S.st.prefs.persons||2,addedAt:Date.now()};save();toast(tx("tAddedMine"));render()}
@@ -385,11 +390,12 @@ async function generateRecipes(){
   const sample=await getSample();
   if(!sample){S.genErr=tx("eOnly");render();return}
   S.gen=true;S.genErr="";S.genMsg=tx("aiMsg");render();
-  const tab=S.st.tab;
+  const tab=S.st.tab,cat=S.st.cat,key=deckKey();
   const month=I18N.fr.months[MONTH-1];
   const tabTxt=tab==="quick"?" Toutes se préparent en 20 minutes maximum, préparation et cuisson comprises.":tab==="batch"?" Toutes se cuisinent en grande quantité le week-end et se gardent 3 à 4 jours au réfrigérateur sans perdre en qualité.":tab==="dinner"?" Ce sont des dîners de plus de 20 minutes, un peu plus élaborés.":"";
+  const catTxt=cat==="all"?"":` La protéine principale de chaque recette est une de : ${Object.keys(PROT).filter(p=>PROT[p]===cat).join(", ")}.`;
   const titles=Object.values(CATALOG).map(r=>r.title);
-  const prompt=`Tu es nutritionniste et cuisinier. Écris 6 nouvelles recettes saines, complètes et savoureuses pour une cuisine maison en France. Au moins 5 sont des recettes françaises ou européennes du quotidien, avec uniquement des légumes et fruits de saison en France en ${month}. Une seule peut être un écart (cuisine du monde).${tabTxt}
+  const prompt=`Tu es nutritionniste et cuisinier. Écris 6 nouvelles recettes saines, complètes et savoureuses pour une cuisine maison en France. Au moins 5 sont des recettes françaises ou européennes du quotidien, avec uniquement des légumes et fruits de saison en France en ${month}. Une seule peut être un écart (cuisine du monde).${tabTxt}${catTxt}
 Règles : beaucoup de légumes, une source de protéines, un féculent complet ou des légumineuses, une bonne matière grasse. Varie les protéines. Pas de charcuterie ni de produits ultra-transformés.
 Exclusions (jamais) : ${S.st.prefs.exclusions||"aucune"}
 Envies : ${S.st.prefs.envies||"aucune précision"}
@@ -421,7 +427,7 @@ Réponds uniquement par un tableau JSON de 6 objets au format :
     if(!added.length)throw {code:"invalid_json"};
     added.forEach(registerCustom);
     await Store.addCustom(added);
-    S.st.decks[tab]=added.filter(r=>!excluded(r)&&inTab(r,tab)).map(r=>r.id).concat(S.st.decks[tab]||[]).slice(0,DECK+6);save();
+    S.st.decks[key]=added.filter(r=>!excluded(r)&&inTab(r,tab)&&inCat(r,cat)).map(r=>r.id).concat(S.st.decks[key]||[]).slice(0,DECK+6);save();
     S.query="";window.scrollTo(0,0);
     toast(tx("aiAdded",added.length));
   }catch(e){console.error(e);S.genErr=errMsg(e)}
@@ -448,7 +454,7 @@ function cardHTML(r,mode){
   if(mode==="discover"||mode==="fav")right=inMine(r.id)?iconBtn("on",tx("add"),icon("added"),`data-act="unmine" data-id="${esc(r.id)}" aria-pressed="true"`):iconBtn("",tx("add"),icon("add"),`data-act="mine" data-id="${esc(r.id)}" aria-pressed="false"`);
   let extra="";
   if(mode==="mine")extra=`<div class="mine-actions"><div class="stepper" role="group" aria-label="${esc(tx("persGroup"))}"><button data-act="minus" data-id="${esc(r.id)}" aria-label="${esc(tx("lessP"))}">−</button><span>${esc(tx("pers",m.persons))}</span><button data-act="plus" data-id="${esc(r.id)}" aria-label="${esc(tx("moreP"))}">+</button></div>${iconBtn("",tx("done"),icon("done"),`data-act="done" data-id="${esc(r.id)}"`)}</div>`;
-  return `<article class="card" style="--c:${PROT[r.protein]||"var(--line)"}">
+  return `<article class="card" style="--c:${CAT_COLOR[PROT[r.protein]]||"var(--line)"}">
     <button class="open" data-open="${esc(r.id)}"><span class="t">${esc(L.title)}${fav}</span><span class="m">${esc(metaLine(r))}${r.custom?esc(tx("byClaude")):""}</span>${mode==="discover"&&L.highlights.length?`<span class="h">${esc(L.highlights.join(", "))}</span>`:""}${tagsHTML(r)}</button>
     ${right}${extra}</article>`;
 }
@@ -456,18 +462,19 @@ function discoverView(){
   const total=Object.keys(CATALOG).length;const tabs=T().tabs;
   return `<header class="top"><div><h1>${esc(tx("nav").discover)}</h1><p class="muted">${esc(tx("catalog",total))}</p></div>${refreshBtn()}</header>
   <input class="search" type="search" placeholder="${esc(tx("search"))}" aria-label="${esc(tx("search"))}" value="${esc(S.query)}" data-search>
-  <div class="filters"><div class="seg" role="group">${TAB_KEYS.map(k=>`<button data-tab="${k}" aria-pressed="${S.st.tab===k}">${esc(tabs[k][0])}</button>`).join("")}</div></div>
+  <div class="filters"><div class="seg" role="group">${TAB_KEYS.map(k=>`<button data-tab="${k}" aria-pressed="${S.st.tab===k}">${esc(tabs[k][0])}</button>`).join("")}</div>
+  <div class="seg" role="group">${CAT_KEYS.map(k=>`<button data-cat="${k}" aria-pressed="${S.st.cat===k}">${esc(tx("cats")[k])}</button>`).join("")}</div></div>
   <p class="muted small" style="margin:-4px 0 12px">${esc(tabs[S.st.tab][1])}</p>
   <div id="results">${resultsHTML()}</div>`;
 }
 function resultsHTML(){
   const q=slug(S.query);let h="";
   if(q){
-    const res=Object.values(CATALOG).filter(r=>!S.st.dislikes[r.id]&&!excluded(r)&&inTab(r,S.st.tab)&&(slug(r.title).includes(q)||(r.en&&slug(r.en.title).includes(q))||r.ingredients.some(i=>slug(i.name).includes(q)||slug(EN.ing[i.name]||"").includes(q))));
+    const res=Object.values(CATALOG).filter(r=>!S.st.dislikes[r.id]&&!excluded(r)&&inTab(r,S.st.tab)&&inCat(r,S.st.cat)&&(slug(r.title).includes(q)||(r.en&&slug(r.en.title).includes(q))||r.ingredients.some(i=>slug(i.name).includes(q)||slug(EN.ing[i.name]||"").includes(q))));
     if(!res.length)return `<p class="muted">${esc(tx("noMatch"))}</p>`;
     return `<p class="muted small">${esc(tx("results",res.length))}</p>`+res.slice(0,40).map(r=>cardHTML(r,"discover")).join("");
   }
-  const deck=(S.st.decks[S.st.tab]||[]).map(id=>CATALOG[id]).filter(r=>r&&!S.st.dislikes[r.id]&&!excluded(r));
+  const deck=(S.st.decks[deckKey()]||[]).map(id=>CATALOG[id]).filter(r=>r&&!S.st.dislikes[r.id]&&!excluded(r));
   if(!deck.length)h+=`<div class="empty"><p class="muted">${esc(tx("emptyDeck"))}</p></div>`;
   else h+=deck.map(r=>cardHTML(r,"discover")).join("");
   h+=`<div class="more"><button class="btn ghost" data-act="reshuffle">${esc(tx("other"))}</button></div>`;
@@ -619,9 +626,10 @@ function safe(fn){try{fn()}catch(e){console.error(e);toast((LANG==="en"?"Somethi
 
 /* ---------- events ---------- */
 document.addEventListener("click",e=>safe(()=>{
-  const t=e.target.closest("[data-view],[data-open],[data-act],[data-tab],[data-lang]");if(!t)return;
+  const t=e.target.closest("[data-view],[data-open],[data-act],[data-tab],[data-cat],[data-lang]");if(!t)return;
   if(t.dataset.view){S.view=t.dataset.view;S.sheet=null;render();window.scrollTo(0,0);return}
   if(t.dataset.tab){S.st.tab=t.dataset.tab;ensureDeck();save();render();return}
+  if(t.dataset.cat){S.st.cat=t.dataset.cat;ensureDeck();save();render();return}
   if(t.dataset.lang){LANG=t.dataset.lang;if(Store.mode==="api")saveLang();else{S.st.lang=LANG;save()}render();return}
   if(t.dataset.open){S.sheet={id:t.dataset.open};S.sheetPersons=null;render();return}
   const a=t.dataset.act,id=t.dataset.id||(S.sheet&&S.sheet.id);
@@ -683,6 +691,7 @@ function applyState(st){
     else if(!isObj(S.st.extras))S.st.extras={};
     if(Array.isArray(st.deck)){if(!S.st.decks.all)S.st.decks.all=st.deck;delete S.st.deck}}
   if(!TAB_KEYS.includes(S.st.tab))S.st.tab="all";
+  if(!CAT_KEYS.includes(S.st.cat))S.st.cat="all";
   if(Store.mode==="api")delete S.st.lang;
   LANG=(Store.mode==="api"?S.lang:S.st.lang)==="en"?"en":"fr";
 }
