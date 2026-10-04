@@ -114,7 +114,6 @@ func main() {
 		r.Get("/state", store.GetState)
 		r.Patch("/state", store.PatchState)
 		r.Get("/custom", store.ListCustom)
-		r.Post("/custom", store.AddCustom)
 		r.Get("/recipes/{id}/comments", store.ListComments)
 		r.Post("/recipes/{id}/comments", store.AddComment)
 		r.Put("/comments/{cid}", store.EditComment)

@@ -16,10 +16,6 @@ type StoreHandler struct {
 	Log *slog.Logger
 }
 
-type customRecipe struct {
-	ID string `json:"id"`
-}
-
 func (h *StoreHandler) GetState(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 	err := h.DB.QueryRowContext(r.Context(),
@@ -107,43 +103,6 @@ func (h *StoreHandler) ListCustom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, data)
-}
-
-func (h *StoreHandler) AddCustom(w http.ResponseWriter, r *http.Request) {
-	var recipes []json.RawMessage
-	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxBodyBytes)).Decode(&recipes); err != nil {
-		http.Error(w, `{"error":"invalid body"}`, http.StatusBadRequest)
-		return
-	}
-
-	teamID := teamIDFrom(r.Context())
-	tx, err := h.DB.BeginTx(r.Context(), nil)
-	if err != nil {
-		h.internalError(w, "failed to begin transaction", err)
-		return
-	}
-	defer tx.Rollback()
-
-	for _, raw := range recipes {
-		var rec customRecipe
-		if err := json.Unmarshal(raw, &rec); err != nil || rec.ID == "" {
-			http.Error(w, `{"error":"recipe id is required"}`, http.StatusBadRequest)
-			return
-		}
-		_, err := tx.ExecContext(r.Context(),
-			`INSERT INTO assiette.custom_recipes (team_id, id, data) VALUES ($1, $2, $3) ON CONFLICT (team_id, id) DO NOTHING`,
-			teamID, rec.ID, []byte(raw))
-		if err != nil {
-			h.internalError(w, "failed to add custom recipe", err, "id", rec.ID)
-			return
-		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		h.internalError(w, "failed to commit custom recipes", err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *StoreHandler) internalError(w http.ResponseWriter, msg string, err error, args ...any) {
