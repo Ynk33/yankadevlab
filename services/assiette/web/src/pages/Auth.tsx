@@ -40,14 +40,14 @@ export function Auth() {
         sub={signup ? t.signupSub : t.loginSub}
       />
       <form className="grid gap-3.5" onSubmit={onSubmit}>
-        <Label className="grid gap-1.5 font-semibold">
+        <Label className="grid gap-1.5 text-[0.95rem] leading-normal font-semibold">
           {t.email}
           <Input type="email" name="email" required autoComplete="email" />
         </Label>
-        <Label className="grid gap-1.5 font-semibold">
+        <Label className="grid gap-1.5 text-[0.95rem] leading-normal font-semibold">
           {t.password}
           {signup && (
-            <span className="font-normal text-muted-foreground">
+            <span className="text-[0.85rem] font-normal text-muted-foreground">
               {t.passwordSub}
             </span>
           )}

@@ -30,6 +30,9 @@ export interface Snapshot {
   lang: Lang
   team: string[]
   view: View
+  query: string
+  /** Id of the recipe shown in the sheet. */
+  sheet?: string
   refreshing: boolean
   toast?: Toast
 }
@@ -47,6 +50,7 @@ let snap: Snapshot = {
   lang: "fr",
   team: [],
   view: "discover",
+  query: "",
   refreshing: false,
 }
 const listeners = new Set<() => void>()
@@ -160,10 +164,24 @@ export function update(
 export function reshuffle() {
   set({ st: withDeck(snap.st, true) })
   save()
+  window.scrollTo(0, 0)
 }
 
 export function setView(view: View) {
-  set({ view })
+  set({ view, sheet: undefined })
+  window.scrollTo(0, 0)
+}
+
+export function setQuery(query: string) {
+  set({ query })
+}
+
+export function openSheet(id: string) {
+  set({ sheet: id })
+}
+
+export function closeSheet() {
+  set({ sheet: undefined })
 }
 
 export function setLang(lang: Lang) {

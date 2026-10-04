@@ -89,3 +89,10 @@ export function newDeck(
   }
   return out.map((r) => r.id)
 }
+
+/** Recipes shown for the current tab and category, minus disliked and excluded ones. */
+export const visible = (r: Recipe, st: AppState) =>
+  !st.dislikes[r.id] &&
+  !excluded(r, st.prefs.exclusions) &&
+  inTab(r, st.tab) &&
+  inCat(r, st.cat)
