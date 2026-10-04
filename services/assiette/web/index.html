@@ -47,6 +47,9 @@ h1{font-size:2.1rem}h2{font-size:1.45rem}h3{font-size:1.15rem}
 .seg{display:inline-flex;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px}
 .seg button{border:0;background:none;border-radius:999px;padding:6px 14px;font-size:.9rem;color:var(--muted)}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.seg.cats{flex-wrap:nowrap;max-width:100%;overflow-x:auto;scrollbar-width:none}
+.seg.cats button{padding:6px 8px;font-size:.85rem;flex:none}
+.seg.cats button[style]::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--c);margin-right:5px;vertical-align:1px}
 .filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
 .search{width:100%;padding:11px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);margin-bottom:14px}
 
@@ -463,7 +466,7 @@ function discoverView(){
   return `<header class="top"><div><h1>${esc(tx("nav").discover)}</h1><p class="muted">${esc(tx("catalog",total))}</p></div>${refreshBtn()}</header>
   <input class="search" type="search" placeholder="${esc(tx("search"))}" aria-label="${esc(tx("search"))}" value="${esc(S.query)}" data-search>
   <div class="filters"><div class="seg" role="group">${TAB_KEYS.map(k=>`<button data-tab="${k}" aria-pressed="${S.st.tab===k}">${esc(tabs[k][0])}</button>`).join("")}</div>
-  <div class="seg" role="group">${CAT_KEYS.map(k=>`<button data-cat="${k}" aria-pressed="${S.st.cat===k}">${esc(tx("cats")[k])}</button>`).join("")}</div></div>
+  <div class="seg cats" role="group">${CAT_KEYS.map(k=>`<button data-cat="${k}" aria-pressed="${S.st.cat===k}"${CAT_COLOR[k]?` style="--c:${CAT_COLOR[k]}"`:""}>${esc(tx("cats")[k])}</button>`).join("")}</div></div>
   <p class="muted small" style="margin:-4px 0 12px">${esc(tabs[S.st.tab][1])}</p>
   <div id="results">${resultsHTML()}</div>`;
 }
