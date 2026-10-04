@@ -23,6 +23,9 @@ import (
 //go:embed web/index.html
 var indexHTML []byte
 
+//go:embed web/logo.svg
+var logoSVG []byte
+
 var inlineScriptRe = regexp.MustCompile(`(?s)<script>(.*?)</script>`)
 
 // indexCSP allows only the inline scripts embedded in index.html, identified by their hash.
@@ -101,6 +104,12 @@ func main() {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "same-origin")
 		w.Write(indexHTML)
+	})
+	r.Get("/logo.svg", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/svg+xml")
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Write(logoSVG)
 	})
 	r.With(httprate.Limit(5, time.Minute, httprate.WithKeyFuncs(keyByTraefikRealIP))).Post("/login", store.Login)
 	r.With(httprate.Limit(5, time.Minute, httprate.WithKeyFuncs(keyByTraefikRealIP))).Post("/signup", store.Signup)
