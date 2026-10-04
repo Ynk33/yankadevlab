@@ -21,7 +21,6 @@ Recipes and shopping list app, shared within a team. Own user accounts (no SSO),
 | GET    | `/api/state`                 | Team state (selected recipes, shopping list, favourites, preferences) |
 | PATCH  | `/api/state`                 | Apply a JSON merge patch to the team state                            |
 | GET    | `/api/custom`                | List the team's custom recipes                                        |
-| POST   | `/api/custom`                | Add custom recipes (not called by the current frontend)               |
 | GET    | `/api/recipes/{id}/comments` | List the team's comments on a recipe (oldest first)                   |
 | POST   | `/api/recipes/{id}/comments` | Add a comment (201)                                                   |
 | PUT    | `/api/comments/{cid}`        | Edit one of your own comments (404 otherwise)                         |
