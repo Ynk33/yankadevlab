@@ -20,7 +20,10 @@ until docker exec $PG pg_isready -U dev >/dev/null 2>&1; do sleep 1; done
 export DATABASE_URL="postgres://dev:dev@localhost:$PG_PORT/dev?sslmode=disable"
 cd services/assiette && go build -o $BIN . || exit 1
 echo "Assiette → http://localhost:$CONDUCTOR_PORT"
-SERVER_PORT=$CONDUCTOR_PORT $BIN
+SERVER_PORT=$CONDUCTOR_PORT $BIN &
+until curl -sf localhost:$CONDUCTOR_PORT/health >/dev/null; do kill -0 $! 2>/dev/null || exit 1; sleep 1; done
+go run ./cmd/seed dev@local.test devpassword >/dev/null 2>&1 && echo "Seeded dev@local.test / devpassword" || echo "Dev user: dev@local.test / devpassword"
+wait
 '''
 
 [scripts.run.dashboard]
