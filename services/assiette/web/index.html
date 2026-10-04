@@ -106,7 +106,7 @@ label.f span{font-weight:400;color:var(--muted);font-size:.85rem}
 
 /* nav */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);z-index:10}
-nav.tabs .in{max-width:680px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+nav.tabs .in{max-width:680px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
 nav.tabs button{background:none;border:0;padding:12px 4px 14px;font-size:.9rem;color:var(--muted);font-weight:500;display:flex;align-items:center;justify-content:center}
 nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:600;box-shadow:inset 0 3px 0 var(--accent)}
 nav.tabs b{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:9px;background:var(--accent);color:var(--accent-ink);font-size:.72rem;line-height:18px}
@@ -168,7 +168,7 @@ const inTab=(r,t)=>t==="quick"?r.minutes<=20:t==="batch"?!!r.batch:t==="dinner"?
 /* ---------- i18n ---------- */
 const I18N={
 fr:{
-  nav:{discover:"Découvrir",mine:"Mes recettes",shop:"Courses",plus:"Plus"},
+  nav:{discover:"Découvrir",fav:"Favoris",mine:"Mes recettes",shop:"Courses",plus:"Plus"},
   tabs:{all:["Tout","Toutes les recettes"],quick:["Rapides","20 min maximum"],batch:["Batch","À cuisiner en avance, se garde 3 à 4 jours au frais"],dinner:["Dîners","Plus de 20 min, un peu plus élaborés"]},
   cats:{all:"Toutes",fish:"Poisson",poultry:"Volaille",meat:"Viande",veg:"Végé"},
   prot:{"poisson":"poisson","fruits de mer":"fruits de mer","légumineuses":"légumineuses","volaille":"volaille","viande rouge":"viande rouge","porc":"porc","œufs":"œufs","tofu/tempeh":"tofu/tempeh","fromage":"fromage"},
@@ -183,7 +183,7 @@ fr:{
   shopLeft:n=>n+" article"+(n>1?"s":"")+" restant"+(n>1?"s":""),shopNone:"Rien à acheter",copy:"Copier",shopEmpty:"La liste se remplit avec les ingrédients de tes recettes, ou ajoute tes propres articles.",
   allBasket:"Tout est dans le panier.",basket:n=>"Dans le panier ("+n+")",still:"encore ",copied:"Liste copiée",copyFail:"Copie impossible ici",
   extraPh:"Ajouter un article",extraRayon:"Rayon",extraRm:"Supprimer",tExtraRm:"Article supprimé",
-  favs:"Favoris",favsSub:"Ils reviennent dans Découvrir, même après les avoir faits.",favsEmpty:"Touche ♥ dans une recette pour la garder ici.",
+  favsSub:"Ils reviennent dans Découvrir, même après les avoir faits.",favsEmpty:"Touche ♥ dans une recette pour la garder ici.",
   neverT:"Jamais",neverSub:"Ces recettes ne sont plus proposées.",neverEmpty:"Aucune pour l'instant.",reallow:"Réautoriser",
   settings:"Réglages",lang:"Langue",defP:"Personnes par défaut",defPSub:"Utilisé quand tu ajoutes une recette",excl:"Exclusions",exclSub:"Séparées par des virgules. Les recettes qui en contiennent sont masquées.",exclPh:"Ex. : coriandre, agneau",
   envies:"Envies",enviesSub:"Pour les recettes ajoutées avec Claude",enviesPh:"Ex. : cuisine japonaise, épices",save:"Enregistrer",savedDb:"Données enregistrées sur ton compte.",savedLocal:"Données enregistrées dans ce navigateur.",settingsSaved:"Réglages enregistrés",
@@ -201,7 +201,7 @@ fr:{
   team:"Équipe",teamSub:"Recettes, liste de courses et réglages sont partagés avec ces personnes.",invite:"Inviter quelqu'un",inviteCopied:"Lien d'invitation copié, valable 7 jours",inviteLink:"Lien d'invitation (valable 7 jours)",inviteFail:"Impossible de créer l'invitation.",logout:"Se déconnecter",refresh:"Actualiser",refreshed:"À jour"
 },
 en:{
-  nav:{discover:"Discover",mine:"My recipes",shop:"Shopping",plus:"More"},
+  nav:{discover:"Discover",fav:"Favourites",mine:"My recipes",shop:"Shopping",plus:"More"},
   tabs:{all:["All","Every recipe"],quick:["Quick","20 min max"],batch:["Batch","Cook ahead, keeps 3–4 days in the fridge"],dinner:["Dinners","Over 20 min, a bit more involved"]},
   cats:{all:"All",fish:"Fish",poultry:"Poultry",meat:"Meat",veg:"Veggie"},
   prot:{"poisson":"fish","fruits de mer":"seafood","légumineuses":"legumes","volaille":"poultry","viande rouge":"red meat","porc":"pork","œufs":"eggs","tofu/tempeh":"tofu/tempeh","fromage":"cheese"},
@@ -217,7 +217,7 @@ en:{
   shopLeft:n=>n+" item"+(n>1?"s":"")+" left",shopNone:"Nothing to buy",copy:"Copy",shopEmpty:"The list fills up with your recipes' ingredients, or add your own items.",
   allBasket:"Everything is in the basket.",basket:n=>"In the basket ("+n+")",still:"still ",copied:"List copied",copyFail:"Copying isn't available here",
   extraPh:"Add an item",extraRayon:"Aisle",extraRm:"Delete",tExtraRm:"Item deleted",
-  favs:"Favourites",favsSub:"They come back in Discover, even after you've cooked them.",favsEmpty:"Tap ♥ on a recipe to keep it here.",
+  favsSub:"They come back in Discover, even after you've cooked them.",favsEmpty:"Tap ♥ on a recipe to keep it here.",
   neverT:"Never",neverSub:"These recipes are no longer suggested.",neverEmpty:"None yet.",reallow:"Allow again",
   settings:"Settings",lang:"Language",defP:"Default servings",defPSub:"Used when you add a recipe",excl:"Exclusions",exclSub:"Comma-separated, in French or English. Recipes containing them are hidden.",exclPh:"E.g. coriander, lamb",
   envies:"Cravings",enviesSub:"For recipes added with Claude",enviesPh:"E.g. Japanese food, spices",save:"Save",savedDb:"Data saved to your account.",savedLocal:"Data saved in this browser.",settingsSaved:"Settings saved",
@@ -462,18 +462,24 @@ function cardHTML(r,mode){
     ${right}${extra}</article>`;
 }
 function discoverView(){
-  const total=Object.keys(CATALOG).length;const tabs=T().tabs;
+  const total=Object.keys(CATALOG).length;
   return `<header class="top"><div><h1>${esc(tx("nav").discover)}</h1><p class="muted">${esc(tx("catalog",total))}</p></div>${refreshBtn()}</header>
-  <input class="search" type="search" placeholder="${esc(tx("search"))}" aria-label="${esc(tx("search"))}" value="${esc(S.query)}" data-search>
-  <div class="filters"><div class="seg" role="group">${TAB_KEYS.map(k=>`<button data-tab="${k}" aria-pressed="${S.st.tab===k}">${esc(tabs[k][0])}</button>`).join("")}</div>
-  <div class="seg cats" role="group">${CAT_KEYS.map(k=>`<button data-cat="${k}" aria-pressed="${S.st.cat===k}"${CAT_COLOR[k]?` style="--c:${CAT_COLOR[k]}"`:""}>${esc(tx("cats")[k])}</button>`).join("")}</div></div>
-  <p class="muted small" style="margin:-4px 0 12px">${esc(tabs[S.st.tab][1])}</p>
+  ${filtersHTML()}
   <div id="results">${resultsHTML()}</div>`;
 }
+function filtersHTML(){
+  const tabs=T().tabs;
+  return `<input class="search" type="search" placeholder="${esc(tx("search"))}" aria-label="${esc(tx("search"))}" value="${esc(S.query)}" data-search>
+  <div class="filters"><div class="seg" role="group">${TAB_KEYS.map(k=>`<button data-tab="${k}" aria-pressed="${S.st.tab===k}">${esc(tabs[k][0])}</button>`).join("")}</div>
+  <div class="seg cats" role="group">${CAT_KEYS.map(k=>`<button data-cat="${k}" aria-pressed="${S.st.cat===k}"${CAT_COLOR[k]?` style="--c:${CAT_COLOR[k]}"`:""}>${esc(tx("cats")[k])}</button>`).join("")}</div></div>
+  <p class="muted small" style="margin:-4px 0 12px">${esc(tabs[S.st.tab][1])}</p>`;
+}
+const filtered=r=>!S.st.dislikes[r.id]&&!excluded(r)&&inTab(r,S.st.tab)&&inCat(r,S.st.cat);
+const matchesQuery=(r,q)=>slug(r.title).includes(q)||(r.en&&slug(r.en.title).includes(q))||r.ingredients.some(i=>slug(i.name).includes(q)||slug(EN.ing[i.name]||"").includes(q));
 function resultsHTML(){
   const q=slug(S.query);let h="";
   if(q){
-    const res=Object.values(CATALOG).filter(r=>!S.st.dislikes[r.id]&&!excluded(r)&&inTab(r,S.st.tab)&&inCat(r,S.st.cat)&&(slug(r.title).includes(q)||(r.en&&slug(r.en.title).includes(q))||r.ingredients.some(i=>slug(i.name).includes(q)||slug(EN.ing[i.name]||"").includes(q))));
+    const res=Object.values(CATALOG).filter(r=>filtered(r)&&matchesQuery(r,q));
     if(!res.length)return `<p class="muted">${esc(tx("noMatch"))}</p>`;
     return `<p class="muted small">${esc(tx("results",res.length))}</p>`+res.slice(0,40).map(r=>cardHTML(r,"discover")).join("");
   }
@@ -485,6 +491,17 @@ function resultsHTML(){
   if(S.genErr)h+=`<div class="status err" role="alert">${esc(S.genErr)}</div>`;
   if(Store.mode==="db")h+=`<div class="more"><button class="btn ghost sm" data-act="generate" ${S.gen?"disabled":""}>${esc(S.gen?tx("aiBusy"):tx("aiBtn"))}</button></div>`;
   return h;
+}
+const favList=()=>Object.keys(S.st.favs).map(id=>CATALOG[id]).filter(Boolean).sort((a,b)=>S.st.favs[b.id]-S.st.favs[a.id]);
+function favView(){
+  const h=`<header class="top"><div><h1>${esc(tx("nav").fav)}</h1><p class="muted">${esc(tx("favsSub"))}</p></div>${refreshBtn()}</header>`;
+  if(!favList().length)return h+`<div class="empty"><p class="muted">${esc(tx("favsEmpty"))}</p><button class="btn" data-view="discover">${esc(tx("goDiscover"))}</button></div>`;
+  return h+`${filtersHTML()}<div id="results">${favResultsHTML()}</div>`;
+}
+function favResultsHTML(){
+  const q=slug(S.query);
+  const res=favList().filter(r=>filtered(r)&&matchesQuery(r,q));
+  return res.length?res.map(r=>cardHTML(r,"fav")).join(""):`<p class="muted">${esc(tx("noMatch"))}</p>`;
 }
 function mineView(){
   const items=Object.entries(S.st.mine).filter(([id])=>CATALOG[id]).sort((a,b)=>a[1].addedAt-b[1].addedAt).map(([id])=>CATALOG[id]);
@@ -505,12 +522,9 @@ function shopView(){
 }
 const rmHTML=it=>`<button type="button" class="rm" data-act="rmextra" data-id="${esc(it.key.slice(2))}" aria-label="${esc(tx("extraRm"))} ${esc(it.name)}">×</button>`;
 function plusView(){
-  const favs=Object.keys(S.st.favs).map(id=>CATALOG[id]).filter(Boolean).sort((a,b)=>S.st.favs[b.id]-S.st.favs[a.id]);
   const dl=Object.keys(S.st.dislikes).map(id=>CATALOG[id]).filter(Boolean);
   const p=S.st.prefs;
   return `<header class="top"><div><h1>${esc(tx("nav").plus)}</h1></div>${refreshBtn()}</header>
-  <section><h2>${esc(tx("favs"))}</h2><p class="muted small" style="margin:0 0 12px">${esc(tx("favsSub"))}</p>
-  ${favs.length?favs.map(r=>cardHTML(r,"fav")).join(""):`<p class="muted">${esc(tx("favsEmpty"))}</p>`}</section>
   <section class="section"><h2>${esc(tx("neverT"))}</h2><p class="muted small">${esc(tx("neverSub"))}</p>
   ${dl.length?dl.map(r=>`<div class="ban"><span>${esc(titleOf(r))}</span><button class="btn ghost sm" data-act="undislike" data-id="${esc(r.id)}">${esc(tx("reallow"))}</button></div>`).join(""):`<p class="muted">${esc(tx("neverEmpty"))}</p>`}</section>
   <section class="section"><h2>${esc(tx("settings"))}</h2>
@@ -615,9 +629,9 @@ function render(){
   if(!S.loaded)return;
   document.documentElement.lang=LANG;
   const y=window.scrollY;
-  $("#app").innerHTML={discover:discoverView,mine:mineView,shop:shopView,plus:plusView}[S.view]();
+  $("#app").innerHTML={discover:discoverView,fav:favView,mine:mineView,shop:shopView,plus:plusView}[S.view]();
   const nMine=Object.keys(S.st.mine).length;const nav=tx("nav");
-  $("#tabs").innerHTML=[["discover"],["mine",nMine],["shop"],["plus"]].map(([k,n])=>`<button data-view="${k}" ${S.view===k?'aria-current="page"':""} aria-label="${esc(nav[k]+(n?" ("+n+")":""))}" title="${esc(nav[k])}">${icon(k,22)}${n?`<b>${n}</b>`:""}</button>`).join("");
+  $("#tabs").innerHTML=[["discover"],["fav"],["mine",nMine],["shop"],["plus"]].map(([k,n])=>`<button data-view="${k}" ${S.view===k?'aria-current="page"':""} aria-label="${esc(nav[k]+(n?" ("+n+")":""))}" title="${esc(nav[k])}">${icon(k,22)}${n?`<b>${n}</b>`:""}</button>`).join("");
   $("nav.tabs").setAttribute("aria-label",LANG==="en"?"Sections":"Sections");
   const had=!!$("#sheet-root").innerHTML;
   $("#sheet-root").innerHTML=sheetHTML();
@@ -664,7 +678,7 @@ document.addEventListener("change",e=>safe(()=>{
   else{const t=totals().get(key);if(!t)return;if(b.dataset.buy)S.st.bought[key]=t.qty;else delete S.st.bought[key]}
   save();setTimeout(render,b.dataset.buy?250:0);
 }));
-document.addEventListener("input",e=>{if(e.target.matches("[data-search]")){S.query=e.target.value;$("#results").innerHTML=resultsHTML()}});
+document.addEventListener("input",e=>{if(e.target.matches("[data-search]")){S.query=e.target.value;$("#results").innerHTML=S.view==="fav"?favResultsHTML():resultsHTML()}});
 document.addEventListener("submit",e=>safe(()=>{
   if(e.target.matches("[data-form=auth]")){e.preventDefault();submitAuth(e.target);return}
   if(e.target.matches("[data-form=extra]")){e.preventDefault();
