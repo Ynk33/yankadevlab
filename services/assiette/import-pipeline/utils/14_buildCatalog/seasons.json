@@ -1,0 +1,19 @@
+{
+ "piment rouge": [7, 8, 9, 10],
+ "piment vert": [7, 8, 9, 10],
+ "jalapeño": [7, 8, 9, 10],
+ "piment serrano": [7, 8, 9, 10],
+ "piment scotch bonnet": [7, 8, 9, 10],
+ "gombo": [7, 8, 9, 10],
+ "artichaut": [5, 6, 7, 8, 9],
+ "pois mange-tout": [5, 6, 7],
+ "morille": [3, 4, 5],
+ "potiron": [9, 10, 11, 12, 1, 2],
+ "chou blanc": [10, 11, 12, 1, 2, 3],
+ "chou-navet": [10, 11, 12, 1, 2, 3],
+ "feuille de chou": [10, 11, 12, 1, 2, 3],
+ "cresson de fontaine": [10, 11, 12, 1, 2, 3, 4],
+ "truffe noire": [12, 1, 2],
+ "banane": [],
+ "ananas": []
+}

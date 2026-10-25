@@ -1,0 +1,34 @@
+{
+ "keys": {
+  "chicken broth": {
+   "name_fr": "bouillon de volaille"
+  },
+  "oil and fat": {
+   "name_fr": "huile de colza"
+  }
+ },
+ "rename": {
+  "ail": "gousse d'ail",
+  "poivron": "poivron rouge"
+ },
+ "products": {
+  "pâte feuilletée": {
+   "processed": false
+  },
+  "pâte brisée": {
+   "processed": false
+  },
+  "pâte à pizza": {
+   "processed": false
+  },
+  "bouillon de légumes": {
+   "processed": false
+  },
+  "bouillon de volaille": {
+   "processed": false
+  },
+  "sauce tomate": {
+   "processed": false
+  }
+ }
+}
