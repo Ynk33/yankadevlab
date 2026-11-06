@@ -31,6 +31,9 @@ Recipes and shopping list app, shared within a team. Own user accounts (no SSO),
 | PUT    | `/api/me`                    | Update `lang`                                                         |
 | POST   | `/api/invites`               | Create a 7-day single-use invite                                      |
 | POST   | `/api/invites/{token}/join`  | Move the current account to the invite's team                         |
+| GET    | `/api/catalog`               | Generated recipes users added to the global catalog                   |
+| POST   | `/api/catalog/{id}`          | Add a generated recipe (draft) to the global catalog (404 if unknown) |
+| POST   | `/api/generate`              | `{prompt, n}` → `{matches, generated}` (20 req/hour per user)         |
 
 `/api/*` routes require a valid session.
 
@@ -39,6 +42,12 @@ Recipes and shopping list app, shared within a team. Own user accounts (no SSO),
 - **Passwords** — 8 to 72 bytes.
 - **Comments** — scoped to the team, 1 to 2000 characters. Each comment carries `author` (email) and `mine`; only the
   author can edit or delete it.
+- **Recipe generation** — Claude Haiku 5.5 scores the catalog (static recipes plus the global ones) against the
+  request and catalog recipes scoring 80 or more are returned as `matches` (ids); Claude Sonnet 5.5 writes the rest,
+  with ingredients restricted to `data/products.json` (exported by `import-pipeline/15_exportProducts.py`) and
+  nutrition computed from it. Generated recipes are stored as drafts, listed nowhere, until `POST /api/catalog/{id}`;
+  unpublished drafts are purged after 7 days. Disliked recipes and the team's exclusions are taken into account.
+  Returns 503 without `ANTHROPIC_API_KEY`, 422 when the model declines, 502 on API errors.
 - **Joining a team** — the account leaves its current team. If that team is left empty, it is deleted with its state,
   custom recipes and comments.
 
@@ -48,6 +57,7 @@ Recipes and shopping list app, shared within a team. Own user accounts (no SSO),
 | -------------- | -------- | ------- | ---------------------------- |
 | `DATABASE_URL` | Yes      | —       | PostgreSQL connection string |
 | `SERVER_PORT`  | No       | `8080`  | HTTP port                    |
+| `ANTHROPIC_API_KEY` | No  | —       | Enables `/api/generate`      |
 
 ## Development
 

@@ -6,8 +6,9 @@ import (
 )
 
 type Config struct {
-	DatabaseURL string
-	ServerPort  string
+	DatabaseURL     string
+	ServerPort      string
+	AnthropicAPIKey string
 }
 
 func LoadConfig() (*Config, error) {
@@ -22,7 +23,8 @@ func LoadConfig() (*Config, error) {
 	}
 
 	return &Config{
-		DatabaseURL: dbURL,
-		ServerPort:  port,
+		DatabaseURL:     dbURL,
+		ServerPort:      port,
+		AnthropicAPIKey: os.Getenv("ANTHROPIC_API_KEY"),
 	}, nil
 }

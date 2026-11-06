@@ -58,6 +58,11 @@ func keyByTraefikRealIP(r *http.Request) (string, error) {
 	return httprate.KeyByIP(r)
 }
 
+// keyByUser keys rate limits on the signed-in user (routes behind WithSession).
+func keyByUser(r *http.Request) (string, error) {
+	return userIDFrom(r.Context()), nil
+}
+
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
@@ -99,6 +104,16 @@ func main() {
 	logger.Info("migrations applied")
 
 	store := &StoreHandler{DB: db, Log: logger}
+	if cfg.AnthropicAPIKey != "" {
+		gen, err := NewGenerator(cfg.AnthropicAPIKey, logger)
+		if err != nil {
+			logger.Error("failed to load recipe generator data", "error", err)
+			os.Exit(1)
+		}
+		store.Gen = gen
+	} else {
+		logger.Warn("ANTHROPIC_API_KEY not set: recipe generation disabled")
+	}
 
 	r := chi.NewRouter()
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -124,6 +139,9 @@ func main() {
 		r.Put("/me", store.PutMe)
 		r.Post("/invites", store.CreateInvite)
 		r.Post("/invites/{token}/join", store.JoinTeam)
+		r.Get("/catalog", store.ListCatalog)
+		r.Post("/catalog/{id}", store.AddToCatalog)
+		r.With(httprate.Limit(20, time.Hour, httprate.WithKeyFuncs(keyByUser))).Post("/generate", store.Generate)
 	})
 
 	logger.Info("assiette service listening", "port", cfg.ServerPort)

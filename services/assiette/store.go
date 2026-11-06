@@ -14,6 +14,8 @@ const maxBodyBytes = 1 << 20
 type StoreHandler struct {
 	DB  *sql.DB
 	Log *slog.Logger
+	// Gen is nil when ANTHROPIC_API_KEY is not set; /api/generate then answers 503.
+	Gen *Generator
 }
 
 type customRecipe struct {
