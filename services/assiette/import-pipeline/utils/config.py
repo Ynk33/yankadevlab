@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
 CATALOG_PATH = ROOT.parent / "web/src/data/catalog.json"
 IMPORTED_PATH = ROOT.parent / "web/src/data/imported.json"
+PRODUCTS_EXPORT_PATH = ROOT.parent / "data/products.json"
 ENV_PATH = ROOT.parent / ".env"
 
 USER_AGENT = "assiette-import-pipeline/0.1 (https://github.com/Ynk33/yankadevlab)"

@@ -1,10 +1,11 @@
-"""Step 11 (LLM-assisted): matches every product to a Ciqual 2025 food, then computes kcal, proteins, fibres and
+"""Step 11 (LLM-assisted): matches every recipe ingredient and every generator product (utils/generator_products.py)
+to a Ciqual 2025 food, then computes kcal, proteins, fibres and
 highlights per portion deterministically.
 
 Candidates come from a word-overlap search; the LLM only picks one of them or "none". Manual fixes go in
 utils/11_nutrition/overrides.json ({product: ciqual code or "none"}, versioned). Recipes whose matched ingredients
 cover less than 85% of their weight, or whose energy per portion falls outside 250-1200 kcal (a sign of wrong
-quantities or servings in the source), are dropped. Writes data/11_nutrition/matches.tsv and recipes.json.
+quantities or servings in the source), are dropped. Writes data/11_nutrition/matches.tsv, matches.json and recipes.json.
 Run: uv run --env-file ../.env python 11_nutrition.py
 """
 
@@ -16,6 +17,7 @@ from pathlib import Path
 sys.path[:0] = [str(Path(__file__).parent / "utils"), str(Path(__file__).parent / "utils/11_nutrition")]
 
 from candidate_foods import candidate_foods
+from generator_products import generator_products
 from config import CATALOG_PATH, DATA_DIR
 from highlights import highlights
 from load_ciqual import load_ciqual
@@ -29,6 +31,7 @@ from structured_params import structured_params
 from write_json import write_json
 
 CHUNK = 25
+RETRY_ROUNDS = 2
 MEAT_AND_FISH = {"poisson", "fruits de mer", "volaille", "viande rouge", "porc"}
 MIN_COVERAGE = 0.85
 MIN_KCAL, MAX_KCAL = 250, 1200
@@ -38,31 +41,38 @@ OVERRIDES_PATH = Path(__file__).parent / "utils/11_nutrition/overrides.json"
 def main() -> None:
     recipes = read_json("10_rewrite/recipes.json")
     products = read_json("06_mapVocabulary/products.json")
-    english = json.loads(CATALOG_PATH.read_text())["en"]["ing"]
+    catalog = json.loads(CATALOG_PATH.read_text())
+    english = catalog["en"]["ing"]
     foods = load_ciqual()
     tokens = {code: (name_tokens(f["name_fr"]), name_tokens(f["name_en"])) for code, f in foods.items()}
 
-    names = sorted({i["name"] for r in recipes for i in r["ingredients"]})
+    universe = generator_products(products, read_json("06_mapVocabulary/vocabulary.json"), set(catalog["rayons"]))
+    names = sorted({i["name"] for r in recipes for i in r["ingredients"]} | set(universe))
     name_en = {n: products.get(n, {}).get("name_en") or english.get(n, "") for n in names}
     candidates = {n: candidate_foods(n, name_en[n], foods, tokens) for n in names}
     system, schema = (Path(__file__).parent / "utils/11_nutrition/prompt.md").read_text(), output_schema()
     askable = [n for n in names if candidates[n]]
-    requests = {}
-    for index in range(0, len(askable), CHUNK):
-        chunk = askable[index:index + CHUNK]
-        body = "\n\n".join(
-            f"product: {n}\nenglish: {name_en[n]}\ncandidates:\n" + "\n".join(f"  {c}: {foods[c]['name_fr']}" for c in candidates[n]) for n in chunk
-        )
-        requests[f"chunk-{index // CHUNK:03d}"] = structured_params(system, body, schema, max_tokens=4000)
-    results = run_batch("11_nutrition", requests)
-    if results is None:
-        sys.exit(2)
-
-    matches = {n: "none" for n in names}
-    for message in results.values():
-        for item in (message_json(message) or {"items": []})["items"]:
-            if item["product"] in matches and item["ciqual_code"] in candidates[item["product"]]:
-                matches[item["product"]] = item["ciqual_code"]
+    requests, matches, answered = {}, {n: "none" for n in names}, set()
+    pending = {f"chunk-{i // CHUNK:03d}": askable[i:i + CHUNK] for i in range(0, len(askable), CHUNK)}
+    for round_index in range(RETRY_ROUNDS + 1):
+        for cid, chunk in pending.items():
+            body = "\n\n".join(
+                f"product: {n}\nenglish: {name_en[n]}\ncandidates:\n" + "\n".join(f"  {c}: {foods[c]['name_fr']}" for c in candidates[n]) for n in chunk
+            )
+            requests[cid] = structured_params(system, body, schema, max_tokens=4000)
+        results = run_batch("11_nutrition", requests)
+        if results is None:
+            sys.exit(2)
+        for cid in pending:
+            for item in (message_json(results.get(cid, {})) or {"items": []})["items"]:
+                product, code = item["product"], item["ciqual_code"]
+                if product in matches and product not in answered and (code == "none" or code in candidates[product]):
+                    matches[product] = code
+                    answered.add(product)
+        missing = [n for n in askable if n not in answered]
+        if not missing or round_index == RETRY_ROUNDS:
+            break
+        pending = {f"retry{round_index + 1}-{i // CHUNK:03d}": missing[i:i + CHUNK] for i in range(0, len(missing), CHUNK)}
     overrides = json.loads(OVERRIDES_PATH.read_text()) if OVERRIDES_PATH.exists() else {}
     matches.update({n: c for n, c in overrides.items() if n in matches})
 
@@ -72,6 +82,7 @@ def main() -> None:
     ]
     (DATA_DIR / "11_nutrition").mkdir(parents=True, exist_ok=True)
     (DATA_DIR / "11_nutrition/matches.tsv").write_text("\n".join(rows) + "\n")
+    write_json("11_nutrition/matches.json", matches, indent=1)
 
     kept, dropped, implausible = [], [], []
     for recipe in recipes:
@@ -89,7 +100,7 @@ def main() -> None:
         })
     write_json("11_nutrition/recipes.json", kept, indent=1)
     matched = sum(1 for c in matches.values() if c != "none")
-    print(f"products {len(names)} -> matched {matched}, none {len(names) - matched} | overrides {len(overrides)}")
+    print(f"products {len(names)} -> matched {matched}, none {len(names) - matched} (unanswered {len(missing)}) | overrides {len(overrides)}")
     print(f"recipes {len(recipes)} -> kept {len(kept)} | dropped for coverage < {MIN_COVERAGE:.0%}: {len(dropped)} | implausible energy: {len(implausible)}")
     kcal = sorted(r["kcal"] for r in kept)
     if kcal:

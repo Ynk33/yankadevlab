@@ -1,4 +1,4 @@
-"""Step 6 (LLM): maps every ingredient key to a canonical French product with aisle, role, protein category and conversion factors.
+"""Step 6 (LLM): maps every ingredient key (plus every catalog ingredient) to a canonical French product with aisle, role, protein category and conversion factors.
 
 Writes data/06_mapVocabulary/vocabulary.json ({key: {name_fr, processed, hard_to_find}}), products.json ({name_fr: consolidated
 product}) and products.tsv for review.
@@ -34,6 +34,8 @@ TSV_FIELDS = ["name_fr", "count", "in_catalog", "name_en", "rayon", "role", "pro
 
 def main() -> None:
     keys = collect_keys(read_json("05_parseIngredients/recipes.json"))
+    for name in json.loads(CATALOG_PATH.read_text())["rayons"]:
+        keys.setdefault(name, {"count": 0, "langs": ["fr"], "names": [name]})
     ordered = sorted(keys, key=lambda k: (-keys[k]["count"], k))
     buckets: dict[int, list[str]] = {}
     for key in ordered:
