@@ -28,6 +28,8 @@ export interface Recipe extends RecipeText {
   batch: boolean
   base: number
   custom?: boolean
+  /** Generated recipe not added to the global catalog yet: shown only in the generation panel. */
+  draft?: boolean
   en?: RecipeText
 }
 

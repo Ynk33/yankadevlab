@@ -20,6 +20,16 @@ export interface Toast {
   undo?: () => void
 }
 
+/** Result of the last recipe request (see lib/generate.ts); kept in memory only. */
+export interface Generation {
+  busy: boolean
+  /** Catalog recipes that fulfil the request. */
+  matches: string[]
+  /** Generated recipes, drafts until added to a list or favourites. */
+  generated: string[]
+  error?: string
+}
+
 export interface Snapshot {
   status: "loading" | "auth" | "ready"
   authMode: AuthMode
@@ -35,6 +45,7 @@ export interface Snapshot {
   sheet?: string
   refreshing: boolean
   toast?: Toast
+  gen: Generation
 }
 
 /** Current month, 1-12. */
@@ -52,6 +63,7 @@ let snap: Snapshot = {
   view: "discover",
   query: "",
   refreshing: false,
+  gen: { busy: false, matches: [], generated: [] },
 }
 const listeners = new Set<() => void>()
 
@@ -176,6 +188,10 @@ export function setQuery(query: string) {
   set({ query })
 }
 
+export function setGeneration(gen: Generation) {
+  set({ gen })
+}
+
 export function openSheet(id: string) {
   set({ sheet: id })
 }
@@ -200,13 +216,14 @@ export function setAuthMode(mode: AuthMode) {
 
 async function loadRemote() {
   lastLoad = Date.now()
-  const [st, custom, team, me] = await Promise.all([
+  const [st, custom, catalog, team, me] = await Promise.all([
     api<StoredState>("/api/state"),
     api<CustomRecipeJSON[]>("/api/custom"),
+    api<CustomRecipeJSON[]>("/api/catalog"),
     api<{ members: { email: string }[] }>("/api/team"),
     api<{ lang: string }>("/api/me"),
   ])
-  for (const r of custom || []) registerCustom(r)
+  for (const r of [...(custom || []), ...(catalog || [])]) registerCustom(r)
   return {
     st,
     team: (team?.members || []).map((m) => m.email),

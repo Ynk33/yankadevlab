@@ -29,7 +29,8 @@ export function excluded(r: Recipe, exclusions: string): boolean {
 }
 
 export function eligible(r: Recipe, st: AppState, now: number): boolean {
-  if (st.dislikes[r.id] || excluded(r, st.prefs.exclusions)) return false
+  if (r.draft || st.dislikes[r.id] || excluded(r, st.prefs.exclusions))
+    return false
   const d = st.done[r.id]
   return !(d && now - d < DONE_COOLDOWN)
 }
@@ -90,8 +91,9 @@ export function newDeck(
   return out.map((r) => r.id)
 }
 
-/** Recipes shown for the current tab and category, minus disliked and excluded ones. */
+/** Recipes shown for the current tab and category, minus drafts, disliked and excluded ones. */
 export const visible = (r: Recipe, st: AppState) =>
+  !r.draft &&
   !st.dislikes[r.id] &&
   !excluded(r, st.prefs.exclusions) &&
   inTab(r, st.tab) &&

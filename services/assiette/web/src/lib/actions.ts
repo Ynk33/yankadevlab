@@ -1,4 +1,5 @@
 import { CATALOG, RAYONS } from "@/lib/catalog"
+import { isDraft, publishDraft } from "@/lib/generate"
 import { recipeText } from "@/lib/format"
 import { I18N } from "@/lib/i18n"
 import { clampBought, totals } from "@/lib/shopping"
@@ -34,6 +35,10 @@ export function setCat(cat: CatKey) {
 }
 
 export function addMine(id: string, persons?: number) {
+  if (isDraft(id)) {
+    void publishDraft(id).then((ok) => ok && addMine(id, persons))
+    return
+  }
   update((s) => ({
     ...s,
     mine: {
@@ -71,6 +76,10 @@ export function setPersons(id: string, delta: number) {
 
 export function toggleFav(id: string) {
   const on = !st().favs[id]
+  if (on && isDraft(id)) {
+    void publishDraft(id).then((ok) => ok && toggleFav(id))
+    return
+  }
   update((s) => ({
     ...s,
     favs: on ? { ...s.favs, [id]: Date.now() } : without(s.favs, id),

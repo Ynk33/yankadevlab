@@ -1,5 +1,6 @@
 import { Empty } from "@/components/Empty"
 import { Filters } from "@/components/Filters"
+import { GeneratePanel } from "@/components/GeneratePanel"
 import { PageHeader } from "@/components/PageHeader"
 import { RecipeCard } from "@/components/RecipeCard"
 import { RefreshButton } from "@/components/RefreshButton"
@@ -60,6 +61,7 @@ export function Discover() {
       >
         <RefreshButton />
       </PageHeader>
+      <GeneratePanel />
       <Filters />
       <Results />
     </>

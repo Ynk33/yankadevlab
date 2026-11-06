@@ -8,6 +8,7 @@ import {
   excluded,
   newDeck,
   pickSpread,
+  visible,
 } from "@/lib/deck"
 import { DEFAULT_STATE, type AppState } from "@/lib/state"
 
@@ -44,6 +45,11 @@ describe("excluded", () => {
 })
 
 describe("eligible", () => {
+  it("rejects generated drafts", () => {
+    expect(eligible({ ...salmon, draft: true }, state(), NOW)).toBe(false)
+    expect(visible({ ...salmon, draft: true }, state())).toBe(false)
+  })
+
   it("rejects disliked and recently done recipes", () => {
     expect(eligible(salmon, state(), NOW)).toBe(true)
     expect(eligible(salmon, state({ dislikes: { [salmon.id]: 1 } }), NOW)).toBe(
